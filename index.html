@@ -369,12 +369,12 @@
                         particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
                     };
 
-                    try {
-                        let [connRes, modRes, verbRes] = await Promise.all([
-                            fetch('connectors.json').catch(() => null),
-                            fetch('modals.json').catch(() => null),
-                            fetch('verbs.json').catch(() => null)
-                        ]);
+                   try {
+    let [connRes, modRes, verbRes] = await Promise.all([
+        fetch('connectors.JSON').catch(() => null),
+        fetch('modals.JSON').catch(() => null),
+        fetch('verbs.JSON').catch(() => null)
+    ]);
 
                         this.grammarToolbox.connectors = connRes && connRes.ok ? await connRes.json() : backupToolbox.connectors;
                         this.grammarToolbox.particles = modRes && modRes.ok ? await modRes.json() : backupToolbox.particles;
