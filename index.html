@@ -189,4 +189,568 @@
                     <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Modal Particles</h4>
                     <div class="flex flex-wrap gap-2">
                         <template x-for="item in grammarToolbox.particles" :key="item">
-                            <button @click="addToSentence(item)" class
+                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vocabulary Quick Add from Database (Paged 25 words at a time) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider">
+                        Add from Database (Batch <span x-text="builderPage + 1"></span> of <span x-text="maxBuilderPages"></span> | Total: <span x-text="allFlattenedWords.length"></span> words)
+                    </h4>
+                    <div class="flex items-center gap-2">
+                        <button @click="prevBuilderPage()" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Previous</button>
+                        <button @click="randomizeBuilderPage()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Random</button>
+                        <button @click="nextBuilderPage()" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Next</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 p-1 min-h-[120px] items-start">
+                    <template x-if="allFlattenedWords.length === 0">
+                        <span class="text-slate-500 italic text-xs">Loading database words...</span>
+                    </template>
+                    <template x-for="w in paginatedBuilderWords" :key="w.num">
+                        <button @click="addToSentence(w.german)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-amber-200 px-2.5 py-1.5 rounded-md text-xs transition flex items-center gap-1.5 group" :title="w.meaning">
+                            <span class="font-bold text-slate-500 text-[10px]" x-text="'#' + w.num"></span>
+                            <span x-text="w.german"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- MULTIPLE CHOICE QUIZ VIEW -->
+        <div x-show="viewMode === 'quiz'" class="max-w-xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                <span class="text-sm text-slate-400">Question <span x-text="quizIndex + 1"></span> of 10</span>
+                <span class="text-sm font-bold text-amber-400">Score: <span x-text="quizScore"></span></span>
+            </div>
+            <template x-if="!quizFinished">
+                <div>
+                    <div class="text-center mb-8">
+                        <span class="text-xs text-slate-500 font-mono" x-text="'#' + currentQuizQuestion.num"></span>
+                        <h3 class="text-3xl font-extrabold text-white mt-2 mb-3" x-text="currentQuizQuestion.german"></h3>
+                        <button @click="speak(currentQuizQuestion.german)" class="text-sm text-amber-400 hover:underline">🔊 Listen Pronunciation</button>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="option in currentQuizOptions" :key="option">
+                            <button @click="answerQuiz(option)" class="w-full text-left bg-slate-900 border border-slate-700 hover:border-amber-500 p-4 rounded-xl text-white font-medium transition" x-text="option"></button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <template x-if="quizFinished">
+                <div class="text-center py-6">
+                    <h3 class="text-2xl font-bold mb-2">🎯 Quiz Completed!</h3>
+                    <p class="text-slate-300 mb-6">You scored <span class="font-bold text-amber-400" x-text="quizScore"></span> out of 10.</p>
+                    <button @click="initQuiz()" class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-medium transition shadow">Play Again</button>
+                </div>
+            </template>
+        </div>
+
+        <!-- MEMORY MATCH GAME VIEW -->
+        <div x-show="viewMode === 'memory'" class="max-w-4xl mx-auto">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl mb-6 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Pairs</span>
+                        <span class="text-xl font-bold text-amber-400" x-text="matchedPairs + ' / ' + totalPairs"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Moves</span>
+                        <span class="text-xl font-bold text-white" x-text="memoryMoves"></span>
+                    </div>
+                    <div x-show="enableSprintTimer">
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Time</span>
+                        <span class="text-xl font-bold text-emerald-400" x-text="sprintSeconds + 's'"></span>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" x-model="enableSprintTimer" class="rounded bg-slate-900 border-slate-700 text-amber-600 focus:ring-0"> Timer Sprint
+                    </label>
+                    <select x-model.number="memoryPairCount" @change="initMemoryGame()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500">
+                        <option value="6">6 Pairs</option>
+                        <option value="8">8 Pairs</option>
+                        <option value="12">12 Pairs</option>
+                        <option value="16">16 Pairs</option>
+                    </select>
+                    <button @click="initMemoryGame()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">New Game</button>
+                </div>
+            </div>
+
+            <template x-if="matchedPairs === totalPairs && totalPairs > 0">
+                <div class="bg-emerald-900/80 border border-emerald-600 text-emerald-100 p-6 rounded-xl text-center mb-6 shadow-lg animate-bounce">
+                    <h3 class="text-2xl font-bold mb-1">🎉 Excellent Work!</h3>
+                    <p class="text-sm">Matched all pairs in <span class="font-bold" x-text="memoryMoves"></span> moves <template x-if="enableSprintTimer"><span>in <span class="font-bold" x-text="sprintSeconds"></span> seconds</span></template>!</p>
+                    <button @click="initMemoryGame()" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium transition shadow">Play Again</button>
+                </div>
+            </template>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <template x-for="card in memoryCards" :key="card.id">
+                    <div @click="flipCard(card)" 
+                         class="h-28 bg-slate-800 border-2 rounded-xl flex items-center justify-center p-3 text-center cursor-pointer transition transform duration-300 select-none shadow-md"
+                         :class="{
+                            'border-slate-700 hover:border-amber-500 bg-slate-800': !card.flipped && !card.matched,
+                            'border-amber-500 bg-slate-900 text-white scale-105': card.flipped && !card.matched,
+                            'border-emerald-600 bg-emerald-950/40 text-emerald-300 opacity-80 cursor-default': card.matched
+                         }">
+                        <div x-show="!card.flipped && !card.matched" class="text-slate-500 font-bold text-xl">#</div>
+                        <div x-show="card.flipped || card.matched" class="text-xs sm:text-sm font-semibold" x-text="card.text"></div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-8 text-xs text-slate-500 border-t border-slate-800 mt-12">
+        TerraNova Engineering Lab &bull; German Study & Sentence Workshop
+    </footer>
+
+    <!-- JavaScript Data and Application Logic -->
+    <script>
+        function vocabApp() {
+            const normalizeToolbox = (data, fallbackArray) => {
+                if (!data) return fallbackArray;
+                if (Array.isArray(data)) {
+                    return data.map(item => typeof item === 'string' ? item : (item.german || item.word || item.text || String(item)));
+                }
+                if (typeof data === 'object') {
+                    return Object.values(data).map(item => typeof item === 'string' ? item : (item.german || item.word || item.text || String(item)));
+                }
+                return fallbackArray;
+            };
+
+            return {
+                viewMode: 'list',
+                searchQuery: '',
+                selectedSection: 'all',
+                currentCardIndex: 0,
+                flipped: false,
+                sections: [],
+                dataSource: 'Loading...',
+                starredWords: JSON.parse(localStorage.getItem('starred_vocab') || '[]'),
+                showStarredOnly: false,
+
+                // Sentence Builder State
+                builtSentence: [],
+                feedback: null,
+                builderPage: 0,
+                pageSize: 25,
+                grammarToolbox: {
+                    connectors: [],
+                    verbs: [],
+                    particles: []
+                },
+                
+                // Quiz State
+                quizIndex: 0,
+                quizScore: 0,
+                quizFinished: false,
+                currentQuizQuestion: { num: 0, german: '', meaning: '' },
+                currentQuizOptions: [],
+                quizPool: [],
+
+                // Memory Match State
+                memoryPairCount: 8,
+                memoryCards: [],
+                flippedCards: [],
+                matchedPairs: 0,
+                totalPairs: 0,
+                memoryMoves: 0,
+                isChecking: false,
+                enableSprintTimer: false,
+                sprintSeconds: 0,
+                timerInterval: null,
+
+                async initData() {
+                    // 1. Load Main Vocabulary (words.JSON)
+                    try {
+                        let response = await fetch('words.JSON');
+                        if (!response.ok) throw new Error('File not found');
+                        let data = await response.json();
+                        
+                        if (Array.isArray(data)) {
+                            this.sections = data;
+                        } else if (data.sections) {
+                            this.sections = data.sections;
+                        } else {
+                            this.sections = this.formatRawWordsToSections(data);
+                        }
+                        this.dataSource = 'words.JSON';
+                    } catch (e) {
+                        const fallbackWords = {
+                            "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
+                            "2": { "german": "die Erlösung", "english": "Redemption / salvation" },
+                            "1001": { "german": "die Aseität", "english": "Aseity / self-existence of God" },
+                            "1002": { "german": "die Immanenz", "english": "Immanence / divine presence within creation" }
+                        };
+                        this.sections = this.formatRawWordsToSections(fallbackWords);
+                        this.dataSource = 'Fallback Array';
+                    }
+
+                    // 2. Load Grammar Toolbox Files (connectors.JSON, modals.JSON, verbs.JSON)
+                    const backupToolbox = {
+                        connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
+                        verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'weiß', 'gibt', 'lebt', 'sucht'],
+                        particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
+                    };
+
+                    try {
+                        let [connRes, modRes, verbRes] = await Promise.all([
+                            fetch('connectors.JSON').catch(() => null),
+                            fetch('modals.JSON').catch(() => null),
+                            fetch('verbs.JSON').catch(() => null)
+                        ]);
+
+                        let connData = connRes && connRes.ok ? await connRes.json() : null;
+                        let modData = modRes && modRes.ok ? await modRes.json() : null;
+                        let verbData = verbRes && verbRes.ok ? await verbRes.json() : null;
+
+                        this.grammarToolbox.connectors = normalizeToolbox(connData, backupToolbox.connectors);
+                        this.grammarToolbox.particles = normalizeToolbox(modData, backupToolbox.particles);
+                        this.grammarToolbox.verbs = normalizeToolbox(verbData, backupToolbox.verbs);
+                    } catch (err) {
+                        this.grammarToolbox.connectors = backupToolbox.connectors;
+                        this.grammarToolbox.particles = backupToolbox.particles;
+                        this.grammarToolbox.verbs = backupToolbox.verbs;
+                    }
+                },
+
+                loadCustomFile(event) {
+                    let file = event.target.files[0];
+                    if (!file) return;
+                    let reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            let data = JSON.parse(e.target.result);
+                            if (Array.isArray(data)) {
+                                this.sections = data;
+                            } else if (data.sections) {
+                                this.sections = data.sections;
+                            } else {
+                                this.sections = this.formatRawWordsToSections(data);
+                            }
+                            this.dataSource = file.name + ' (Local Upload)';
+                        } catch (err) {
+                            alert('Invalid JSON file format.');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+
+                formatRawWordsToSections(rawObj) {
+                    if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
+                        return rawObj;
+                    }
+                    if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) && rawObj.sections) {
+                        return rawObj.sections;
+                    }
+
+                    let flatArray = [];
+                    if (Array.isArray(rawObj)) {
+                        flatArray = rawObj.map((item, idx) => ({
+                            num: typeof item.num === 'number' ? item.num : (idx + 1),
+                            german: item.german || item.deutsch || '',
+                            meaning: item.english || item.meaning || '',
+                            type: 'Term'
+                        }));
+                    } else if (rawObj && typeof rawObj === 'object') {
+                        let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                        flatArray = wordKeys.map((k, idx) => {
+                            let item = rawObj[k];
+                            let parsedNum = parseInt(k, 10);
+                            return {
+                                num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
+                                german: item.german || item.deutsch || '',
+                                meaning: item.english || item.meaning || '',
+                                type: 'Term'
+                            };
+                        });
+                    }
+
+                    let chunks = [];
+                    for (let i = 0; i < flatArray.length; i += 25) {
+                        let chunkWords = flatArray.slice(i, i + 25);
+                        let startNum = chunkWords[0].num;
+                        let endNum = chunkWords[chunkWords.length - 1].num;
+                        chunks.push({
+                            id: 'sec_' + (chunks.length + 1),
+                            name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
+                            words: chunkWords
+                        });
+                    }
+                    return chunks;
+                },
+
+                speak(text) {
+                    let utteranceText = typeof text === 'string' ? text : this.builtSentenceText;
+                    if ('speechSynthesis' in window && utteranceText) {
+                        window.speechSynthesis.cancel();
+                        let utterance = new SpeechSynthesisUtterance(utteranceText);
+                        utterance.lang = 'de-DE';
+                        window.speechSynthesis.speak(utterance);
+                    }
+                },
+
+                toggleStar(num) {
+                    if (this.starredWords.includes(num)) {
+                        this.starredWords = this.starredWords.filter(n => n !== num);
+                    } else {
+                        this.starredWords.push(num);
+                    }
+                    localStorage.setItem('starred_vocab', JSON.stringify(this.starredWords));
+                },
+
+                addToSentence(word) {
+                    this.builtSentence.push(word);
+                    this.feedback = null;
+                },
+
+                removeFromSentence(index) {
+                    this.builtSentence.splice(index, 1);
+                    this.feedback = null;
+                },
+
+                get builtSentenceText() {
+                    return this.builtSentence.join(' ');
+                },
+
+                checkSentence() {
+                    if (this.builtSentence.length === 0) {
+                        this.feedback = { valid: false, message: 'Please add some words to your sentence workspace first.', translation: 'N/A' };
+                        return;
+                    }
+
+                    let sentence = this.builtSentenceText.toLowerCase();
+                    let firstWord = this.builtSentence[0];
+                    let isCapitalized = firstWord && firstWord[0] === firstWord[0].toUpperCase();
+                    let hasConjunction = sentence.includes('weil') || sentence.includes('dass') || sentence.includes('wenn');
+                    let endsWithVerb = false;
+
+                    const commonVerbs = [...this.grammarToolbox.verbs];
+                    let lastWord = this.builtSentence[this.builtSentence.length - 1]?.toLowerCase();
+                    if (commonVerbs.includes(lastWord)) {
+                        endsWithVerb = true;
+                    }
+
+                    let checks = [];
+                    let valid = true;
+
+                    if (!isCapitalized) {
+                        valid = false;
+                        checks.push('Starting word should be capitalized in German.');
+                    } else {
+                        checks.push('Capitalization looks correct.');
+                    }
+
+                    if (hasConjunction) {
+                        if (endsWithVerb) {
+                            checks.push('Subordinating conjunction detected with conjugated verb at the end (correct German word order!).');
+                        } else {
+                            valid = false;
+                            checks.push('Sentences with conjunctions like "weil" or "dass" usually place the conjugated verb at the end.');
+                        }
+                    } else {
+                        checks.push('Main clause structure recognized.');
+                    }
+
+                    this.feedback = {
+                        valid: valid,
+                        message: checks.join(' '),
+                        translation: 'Constructed sentence: ' + this.builtSentenceText + ' (Review vocabulary meanings in your list to confirm context)'
+                    };
+                },
+
+                get allFlattenedWords() {
+                    let list = [];
+                    this.sections.forEach(sec => {
+                        sec.words.forEach(w => {
+                            list.push({ ...w, sectionName: sec.name });
+                        });
+                    });
+                    return list;
+                },
+
+                get maxBuilderPages() {
+                    let total = this.allFlattenedWords.length;
+                    return Math.max(1, Math.ceil(total / this.pageSize));
+                },
+
+                get paginatedBuilderWords() {
+                    let all = this.allFlattenedWords;
+                    let start = this.builderPage * this.pageSize;
+                    if (start >= all.length) {
+                        this.builderPage = 0;
+                        start = 0;
+                    }
+                    return all.slice(start, start + this.pageSize);
+                },
+
+                nextBuilderPage() {
+                    this.builderPage = (this.builderPage + 1) % this.maxBuilderPages;
+                },
+
+                prevBuilderPage() {
+                    this.builderPage = (this.builderPage - 1 + this.maxBuilderPages) % this.maxBuilderPages;
+                },
+
+                randomizeBuilderPage() {
+                    if (this.maxBuilderPages > 1) {
+                        let rand;
+                        do {
+                            rand = Math.floor(Math.random() * this.maxBuilderPages);
+                        } while (rand === this.builderPage);
+                        this.builderPage = rand;
+                    }
+                },
+
+                get filteredSections() {
+                    let q = this.searchQuery.toLowerCase();
+                    return this.sections.map(sec => {
+                        let filteredWords = sec.words.filter(w => {
+                            let matchesSearch = w.german.toLowerCase().includes(q) || 
+                                                w.meaning.toLowerCase().includes(q) || 
+                                                w.num.toString().includes(q);
+                            let matchesSection = this.selectedSection === 'all' || sec.id === this.selectedSection;
+                            let matchesStar = !this.showStarredOnly || this.starredWords.includes(w.num);
+                            return matchesSearch && matchesSection && matchesStar;
+                        });
+                        return { ...sec, words: filteredWords };
+                    }).filter(sec => sec.words.length > 0);
+                },
+
+                get filteredWordsList() {
+                    let list = [];
+                    this.filteredSections.forEach(sec => {
+                        sec.words.forEach(w => {
+                            list.push({ ...w, sectionName: sec.name });
+                        });
+                    });
+                    return list;
+                },
+
+                get totalFilteredWords() {
+                    return this.filteredWordsList.length;
+                },
+
+                get currentWord() {
+                    let list = this.filteredWordsList;
+                    if (list.length === 0) return { num: 0, german: 'No words found', meaning: '', type: '', sectionName: '' };
+                    if (this.currentCardIndex >= list.length) this.currentCardIndex = 0;
+                    return list[this.currentCardIndex];
+                },
+
+                nextCard() {
+                    this.flipped = false;
+                    let len = this.filteredWordsList.length;
+                    if (len > 0) this.currentCardIndex = (this.currentCardIndex + 1) % len;
+                },
+
+                prevCard() {
+                    this.flipped = false;
+                    let len = this.filteredWordsList.length;
+                    if (len > 0) this.currentCardIndex = (this.currentCardIndex - 1 + len) % len;
+                },
+
+                randomCard() {
+                    let len = this.filteredWordsList.length;
+                    if (len > 1) {
+                        let randomIndex;
+                        do {
+                            randomIndex = Math.floor(Math.random() * len);
+                        } while (randomIndex === this.currentCardIndex);
+                        this.currentCardIndex = randomIndex;
+                    }
+                },
+
+                initQuiz() {
+                    let pool = [...this.allFlattenedWords];
+                    pool.sort(() => Math.random() - 0.5);
+                    this.quizPool = pool.slice(0, 10);
+                    this.quizIndex = 0;
+                    this.quizScore = 0;
+                    this.quizFinished = false;
+                    this.loadQuizQuestion();
+                },
+
+                loadQuizQuestion() {
+                    if (this.quizIndex >= this.quizPool.length) {
+                        this.quizFinished = true;
+                        return;
+                    }
+                    this.currentQuizQuestion = this.quizPool[this.quizIndex];
+                    let correctMeaning = this.currentQuizQuestion.meaning;
+                    let distractors = this.allFlattenedWords.filter(w => w.meaning !== correctMeaning).map(w => w.meaning);
+                    distractors.sort(() => Math.random() - 0.5);
+                    let options = [correctMeaning, ...distractors.slice(0, 3)];
+                    this.currentQuizOptions = options.sort(() => Math.random() - 0.5);
+                },
+
+                answerQuiz(selectedOption) {
+                    if (selectedOption === this.currentQuizQuestion.meaning) {
+                        this.quizScore++;
+                    }
+                    this.quizIndex++;
+                    this.loadQuizQuestion();
+                },
+
+                initMemoryGame() {
+                    if (this.timerInterval) clearInterval(this.timerInterval);
+                    this.sprintSeconds = 0;
+                    if (this.enableSprintTimer) {
+                        this.timerInterval = setInterval(() => {
+                            if (this.matchedPairs < this.totalPairs) this.sprintSeconds++;
+                        }, 1000);
+                    }
+                    let allWords = [...this.allFlattenedWords];
+                    allWords.sort(() => Math.random() - 0.5);
+                    this.totalPairs = Math.min(this.memoryPairCount, allWords.length);
+                    let selectedWords = allWords.slice(0, this.totalPairs);
+                    let cards = [];
+                    selectedWords.forEach((word, index) => {
+                        cards.push({ id: 'g_' + index, pairId: index, text: word.german, flipped: false, matched: false });
+                        cards.push({ id: 'm_' + index, pairId: index, text: word.meaning, flipped: false, matched: false });
+                    });
+                    this.memoryCards = cards.sort(() => Math.random() - 0.5);
+                    this.flippedCards = [];
+                    this.matchedPairs = 0;
+                    this.memoryMoves = 0;
+                    this.isChecking = false;
+                },
+
+                flipCard(card) {
+                    if (this.isChecking || card.flipped || card.matched) return;
+                    card.flipped = true;
+                    this.flippedCards.push(card);
+                    if (this.flippedCards.length === 2) {
+                        this.memoryMoves++;
+                        this.isChecking = true;
+                        let [card1, card2] = this.flippedCards;
+                        if (card1.pairId === card2.pairId && card1.id !== card2.id) {
+                            card1.matched = true;
+                            card2.matched = true;
+                            this.matchedPairs++;
+                            this.flippedCards = [];
+                            this.isChecking = false;
+                            if (this.matchedPairs === this.totalPairs && this.timerInterval) clearInterval(this.timerInterval);
+                        } else {
+                            setTimeout(() => {
+                                card1.flipped = false;
+                                card2.flipped = false;
+                                this.flippedCards = [];
+                                this.isChecking = false;
+                            }, 900);
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
