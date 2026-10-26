@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Theological Vocabulary (Complete 1200)</title>
+    <title>German Theological Vocabulary & Sentence Workshop</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
@@ -22,9 +22,9 @@
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <span class="text-xs uppercase tracking-widest text-amber-400 font-semibold">TerraNova Engineering Lab</span>
-                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">German Theological Vocabulary (Complete)</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">German Study & Sentence Workshop</h1>
                 <div class="flex items-center gap-3 mt-1">
-                    <p class="text-slate-400 text-sm">Interactive study, flashcards, memory match & quiz suite.</p>
+                    <p class="text-slate-400 text-sm">Vocabulary, Flashcards, Quiz, Memory & Sentence Builder.</p>
                     <span class="text-xs px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300 font-mono" x-text="'Source: ' + dataSource"></span>
                 </div>
             </div>
@@ -33,6 +33,7 @@
                 <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">List</button>
                 <button @click="viewMode = 'cards'" :class="viewMode === 'cards' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Flashcards</button>
                 <button @click="viewMode = 'quiz'; initQuiz()" :class="viewMode === 'quiz' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Quiz</button>
+                <button @click="viewMode = 'builder'" :class="viewMode === 'builder' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Sentence Builder</button>
                 <button @click="viewMode = 'memory'; initMemoryGame()" :class="viewMode === 'memory' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Memory Match</button>
             </div>
         </div>
@@ -41,19 +42,16 @@
     <!-- Main Content -->
     <main class="max-w-6xl mx-auto px-4 sm:px-8 py-8">
 
-        <!-- Controls: Search, Filters & Bookmarks -->
-        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory' && viewMode !== 'quiz'">
-            <!-- Search Bar -->
+        <!-- Controls: Search, Filters & Bookmarks (Hidden in special modes) -->
+        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory' && viewMode !== 'quiz' && viewMode !== 'builder'">
             <div class="relative flex-1">
                 <input type="text" x-model="searchQuery" placeholder="Search German term, English meaning, or number..." 
                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition">
                 <svg class="w-5 h-5 text-slate-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <!-- Starred Filter Toggle -->
             <button @click="showStarredOnly = !showStarredOnly" :class="showStarredOnly ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800 text-slate-300 border-slate-700'" class="px-4 py-3 rounded-lg border font-medium transition flex items-center justify-center gap-2">
                 <span>★ Starred Only</span>
             </button>
-            <!-- Section Filter -->
             <div class="md:w-64">
                 <select x-model="selectedSection" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="all">All Sections (<span x-text="allFlattenedWords.length"></span> words)</option>
@@ -96,11 +94,8 @@
                 <span>Card <span x-text="currentCardIndex + 1"></span> of <span x-text="totalFilteredWords"></span></span>
                 <button @click="toggleStar(currentWord.num)" class="text-xl transition" :class="starredWords.includes(currentWord.num) ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'">★</button>
             </div>
-
-            <!-- Flashcard Component -->
             <div class="perspective h-80 w-full cursor-pointer mb-6" @click="flipped = !flipped">
                 <div class="relative w-full h-full duration-500 transform-style shadow-2xl rounded-2xl" :class="flipped ? 'rotate-y-180' : ''">
-                    <!-- Front (German) -->
                     <div class="absolute inset-0 w-full h-full bg-slate-800 border-2 border-slate-700 rounded-2xl flex flex-col items-center justify-center p-8 backface-hidden text-center">
                         <span class="absolute top-4 left-4 text-xs font-mono text-amber-400" x-text="'#' + currentWord.num"></span>
                         <button @click.stop="speak(currentWord.german)" class="absolute top-4 right-4 text-lg text-slate-400 hover:text-amber-400">🔊</button>
@@ -108,7 +103,6 @@
                         <h2 class="text-3xl font-extrabold text-white mb-3" x-text="currentWord.german"></h2>
                         <span class="absolute bottom-4 text-xs text-slate-500">Click to flip</span>
                     </div>
-                    <!-- Back (Meaning) -->
                     <div class="absolute inset-0 w-full h-full bg-slate-800 border-2 border-amber-600/50 rounded-2xl flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 text-center">
                         <span class="absolute top-4 left-4 text-xs font-mono text-amber-400" x-text="'#' + currentWord.num"></span>
                         <span class="text-xs uppercase tracking-wider text-amber-400 mb-2">Meaning</span>
@@ -117,12 +111,94 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Flashcard Navigation Buttons -->
             <div class="flex justify-between items-center gap-4">
                 <button @click="prevCard()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-lg font-medium transition text-center">Previous</button>
                 <button @click="flipped = false; randomCard()" class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-medium transition">Shuffle</button>
                 <button @click="nextCard()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-lg font-medium transition text-center">Next</button>
+            </div>
+        </div>
+
+        <!-- SENTENCE BUILDER WORKSHOP VIEW -->
+        <div x-show="viewMode === 'builder'" class="max-w-4xl mx-auto space-y-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+                <h3 class="text-xl font-bold text-amber-400 mb-2">✍️ Sentence Builder Workshop</h3>
+                <p class="text-slate-400 text-sm mb-4">Click building blocks (pronouns, connectors, verbs, nouns, particles) or words from your database to construct a German sentence. Click words in your workspace to remove them.</p>
+
+                <!-- Sentence Workspace -->
+                <div class="bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl p-6 min-h-[100px] flex flex-wrap items-center gap-3 mb-6">
+                    <template x-if="builtSentence.length === 0">
+                        <span class="text-slate-500 italic text-sm">Your sentence is empty. Click building blocks below to start...</span>
+                    </template>
+                    <template x-for="(word, index) in builtSentence" :key="index">
+                        <button @click="removeFromSentence(index)" class="bg-amber-600 hover:bg-red-600 text-white px-3.5 py-2 rounded-lg font-medium text-sm transition shadow flex items-center gap-1.5 group">
+                            <span x-text="word"></span>
+                            <span class="text-xs text-amber-200 group-hover:text-white">&times;</span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Sentence Actions -->
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex gap-3">
+                        <button @click="checkSentence()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition shadow">Check Sentence</button>
+                        <button @click="speak(builtSentenceText)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg font-medium transition">🔊 Speak</button>
+                        <button @click="builtSentence = []; feedback = null" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-4 py-2.5 rounded-lg font-medium transition">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Feedback & Accuracy Box -->
+                <template x-if="feedback">
+                    <div class="mt-6 p-5 rounded-xl border" :class="feedback.valid ? 'bg-emerald-950/40 border-emerald-600 text-emerald-200' : 'bg-amber-950/40 border-amber-600 text-amber-200'">
+                        <h4 class="font-bold text-lg mb-1 flex items-center gap-2">
+                            <span x-text="feedback.valid ? '✅ Well Constructed!' : '⚠️ Grammar Note'"></span>
+                        </h4>
+                        <p class="text-sm mb-2" x-text="feedback.message"></p>
+                        <div class="text-xs font-mono opacity-80" x-text="'Literal / Suggested Translation: ' + feedback.translation"></div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Building Blocks Toolbar -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Pronouns & Connectors -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Pronouns & Connectors</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="item in grammarToolbox.connectors" :key="item">
+                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Core Verbs -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Verbs</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="item in grammarToolbox.verbs" :key="item">
+                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Modal Particles -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Modal Particles</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="item in grammarToolbox.particles" :key="item">
+                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vocabulary Quick Add from Database -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Add from your Vocabulary Database (<span x-text="allFlattenedWords.length"></span> words)</h4>
+                <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+                    <template x-for="w in allFlattenedWords.slice(0, 60)" :key="w.num">
+                        <button @click="addToSentence(w.german)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-amber-200 px-2.5 py-1 rounded-md text-xs transition" x-text="w.german"></button>
+                    </template>
+                </div>
             </div>
         </div>
 
@@ -132,7 +208,6 @@
                 <span class="text-sm text-slate-400">Question <span x-text="quizIndex + 1"></span> of 10</span>
                 <span class="text-sm font-bold text-amber-400">Score: <span x-text="quizScore"></span></span>
             </div>
-            
             <template x-if="!quizFinished">
                 <div>
                     <div class="text-center mb-8">
@@ -140,17 +215,13 @@
                         <h3 class="text-3xl font-extrabold text-white mt-2 mb-3" x-text="currentQuizQuestion.german"></h3>
                         <button @click="speak(currentQuizQuestion.german)" class="text-sm text-amber-400 hover:underline">🔊 Listen Pronunciation</button>
                     </div>
-
                     <div class="space-y-3">
                         <template x-for="option in currentQuizOptions" :key="option">
-                            <button @click="answerQuiz(option)" 
-                                    class="w-full text-left bg-slate-900 border border-slate-700 hover:border-amber-500 p-4 rounded-xl text-white font-medium transition"
-                                    x-text="option"></button>
+                            <button @click="answerQuiz(option)" class="w-full text-left bg-slate-900 border border-slate-700 hover:border-amber-500 p-4 rounded-xl text-white font-medium transition" x-text="option"></button>
                         </template>
                     </div>
                 </div>
             </template>
-
             <template x-if="quizFinished">
                 <div class="text-center py-6">
                     <h3 class="text-2xl font-bold mb-2">🎯 Quiz Completed!</h3>
@@ -191,7 +262,6 @@
                 </div>
             </div>
 
-            <!-- Win Message Banner -->
             <template x-if="matchedPairs === totalPairs && totalPairs > 0">
                 <div class="bg-emerald-900/80 border border-emerald-600 text-emerald-100 p-6 rounded-xl text-center mb-6 shadow-lg animate-bounce">
                     <h3 class="text-2xl font-bold mb-1">🎉 Excellent Work!</h3>
@@ -200,7 +270,6 @@
                 </div>
             </template>
 
-            <!-- Cards Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <template x-for="card in memoryCards" :key="card.id">
                     <div @click="flipCard(card)" 
@@ -221,7 +290,7 @@
 
     <!-- Footer -->
     <footer class="text-center py-8 text-xs text-slate-500 border-t border-slate-800 mt-12">
-        TerraNova Engineering Lab &bull; German Theological Vocabulary Web App
+        TerraNova Engineering Lab &bull; German Study & Sentence Workshop
     </footer>
 
     <!-- JavaScript Data and Application Logic -->
@@ -237,6 +306,15 @@
                 dataSource: 'Loading...',
                 starredWords: JSON.parse(localStorage.getItem('starred_vocab') || '[]'),
                 showStarredOnly: false,
+
+                // Sentence Builder State
+                builtSentence: [],
+                feedback: null,
+                grammarToolbox: {
+                    connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
+                    verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'ist', 'weiß', 'gibt', 'lebt', 'sucht'],
+                    particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
+                },
                 
                 // Quiz State
                 quizIndex: 0,
@@ -260,7 +338,7 @@
 
                 async initData() {
                     try {
-                        let response = await fetch('words.JSON');
+                        let response = await fetch('words.json');
                         if (!response.ok) throw new Error('File not found');
                         let data = await response.json();
                         
@@ -271,9 +349,8 @@
                         } else {
                             this.sections = this.formatRawWordsToSections(data);
                         }
-                        this.dataSource = 'words.JSON (External File)';
+                        this.dataSource = 'words.json (External File)';
                     } catch (e) {
-                        // Fallback sample full range if words.JSON isn't present
                         const fallbackWords = {
                             "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
                             "2": { "german": "die Erlösung", "english": "Redemption / salvation" },
@@ -308,9 +385,10 @@
                 },
 
                 speak(text) {
-                    if ('speechSynthesis' in window) {
+                    let utteranceText = typeof text === 'string' ? text : this.builtSentenceText;
+                    if ('speechSynthesis' in window && utteranceText) {
                         window.speechSynthesis.cancel();
-                        let utterance = new SpeechSynthesisUtterance(text);
+                        let utterance = new SpeechSynthesisUtterance(utteranceText);
                         utterance.lang = 'de-DE';
                         window.speechSynthesis.speak(utterance);
                     }
@@ -323,6 +401,66 @@
                         this.starredWords.push(num);
                     }
                     localStorage.setItem('starred_vocab', JSON.stringify(this.starredWords));
+                },
+
+                addToSentence(word) {
+                    this.builtSentence.push(word);
+                    this.feedback = null;
+                },
+
+                removeFromSentence(index) {
+                    this.builtSentence.splice(index, 1);
+                    this.feedback = null;
+                },
+
+                get builtSentenceText() {
+                    return this.builtSentence.join(' ');
+                },
+
+                checkSentence() {
+                    if (this.builtSentence.length === 0) {
+                        this.feedback = { valid: false, message: 'Please add some words to your sentence workspace first.', translation: 'N/A' };
+                        return;
+                    }
+
+                    let sentence = this.builtSentenceText.toLowerCase();
+                    let firstWord = this.builtSentence[0];
+                    let isCapitalized = firstWord && firstWord[0] === firstWord[0].toUpperCase();
+                    let hasConjunction = sentence.includes('weil') || sentence.includes('dass') || sentence.includes('wenn');
+                    let endsWithVerb = false;
+
+                    const commonVerbs = [...this.grammarToolbox.verbs];
+                    let lastWord = this.builtSentence[this.builtSentence.length - 1]?.toLowerCase();
+                    if (commonVerbs.includes(lastWord)) {
+                        endsWithVerb = true;
+                    }
+
+                    let checks = [];
+                    let valid = true;
+
+                    if (!isCapitalized) {
+                        valid = false;
+                        checks.push('Starting word should be capitalized in German.');
+                    } else {
+                        checks.push('Capitalization looks correct.');
+                    }
+
+                    if (hasConjunction) {
+                        if (endsWithVerb) {
+                            checks.push('Subordinating conjunction detected with conjugated verb at the end (correct German word order!).');
+                        } else {
+                            valid = false;
+                            checks.push('Sentences with conjunctions like "weil" or "dass" usually place the conjugated verb at the end.');
+                        }
+                    } else {
+                        checks.push('Main clause structure recognized.');
+                    }
+
+                    this.feedback = {
+                        valid: valid,
+                        message: checks.join(' '),
+                        translation: 'Constructed sentence: ' + this.builtSentenceText + ' (Review vocabulary meanings in your list to confirm context)'
+                    };
                 },
 
                 get allFlattenedWords() {
@@ -394,7 +532,6 @@
                     }
                 },
 
-                // Quiz Mode Logic
                 initQuiz() {
                     let pool = [...this.allFlattenedWords];
                     pool.sort(() => Math.random() - 0.5);
@@ -412,12 +549,8 @@
                     }
                     this.currentQuizQuestion = this.quizPool[this.quizIndex];
                     let correctMeaning = this.currentQuizQuestion.meaning;
-
-                    let distractors = this.allFlattenedWords
-                        .filter(w => w.meaning !== correctMeaning)
-                        .map(w => w.meaning);
+                    let distractors = this.allFlattenedWords.filter(w => w.meaning !== correctMeaning).map(w => w.meaning);
                     distractors.sort(() => Math.random() - 0.5);
-
                     let options = [correctMeaning, ...distractors.slice(0, 3)];
                     this.currentQuizOptions = options.sort(() => Math.random() - 0.5);
                 },
@@ -430,7 +563,6 @@
                     this.loadQuizQuestion();
                 },
 
-                // Memory Match Game Logic
                 initMemoryGame() {
                     if (this.timerInterval) clearInterval(this.timerInterval);
                     this.sprintSeconds = 0;
@@ -439,19 +571,15 @@
                             if (this.matchedPairs < this.totalPairs) this.sprintSeconds++;
                         }, 1000);
                     }
-
                     let allWords = [...this.allFlattenedWords];
                     allWords.sort(() => Math.random() - 0.5);
-                    
                     this.totalPairs = Math.min(this.memoryPairCount, allWords.length);
                     let selectedWords = allWords.slice(0, this.totalPairs);
-
                     let cards = [];
                     selectedWords.forEach((word, index) => {
                         cards.push({ id: 'g_' + index, pairId: index, text: word.german, flipped: false, matched: false });
                         cards.push({ id: 'm_' + index, pairId: index, text: word.meaning, flipped: false, matched: false });
                     });
-
                     this.memoryCards = cards.sort(() => Math.random() - 0.5);
                     this.flippedCards = [];
                     this.matchedPairs = 0;
@@ -461,24 +589,19 @@
 
                 flipCard(card) {
                     if (this.isChecking || card.flipped || card.matched) return;
-
                     card.flipped = true;
                     this.flippedCards.push(card);
-
                     if (this.flippedCards.length === 2) {
                         this.memoryMoves++;
                         this.isChecking = true;
                         let [card1, card2] = this.flippedCards;
-
                         if (card1.pairId === card2.pairId && card1.id !== card2.id) {
                             card1.matched = true;
                             card2.matched = true;
                             this.matchedPairs++;
                             this.flippedCards = [];
                             this.isChecking = false;
-                            if (this.matchedPairs === this.totalPairs && this.timerInterval) {
-                                clearInterval(this.timerInterval);
-                            }
+                            if (this.matchedPairs === this.totalPairs && this.timerInterval) clearInterval(this.timerInterval);
                         } else {
                             setTimeout(() => {
                                 card1.flipped = false;
