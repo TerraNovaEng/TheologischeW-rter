@@ -260,7 +260,7 @@
 
                 async initData() {
                     try {
-                        let response = await fetch('words.json');
+                        let response = await fetch('words.JSON');
                         if (!response.ok) throw new Error('File not found');
                         let data = await response.json();
                         
@@ -271,9 +271,9 @@
                         } else {
                             this.sections = this.formatRawWordsToSections(data);
                         }
-                        this.dataSource = 'words.json (External File)';
+                        this.dataSource = 'words.JSON (External File)';
                     } catch (e) {
-                        // Fallback sample full range if words.json isn't present
+                        // Fallback sample full range if words.JSON isn't present
                         const fallbackWords = {
                             "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
                             "2": { "german": "die Erlösung", "english": "Redemption / salvation" },
