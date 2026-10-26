@@ -412,49 +412,56 @@
                     reader.readAsText(file);
                 },
 
-         formatRawWordsToSections(rawObj) {
-                    // Check if it's already a proper array of sections
-                    if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
-                        return rawObj;
-                    }
-                    // Check if it has a sections property
-                    if (rawObj && rawObj.sections && Array.isArray(rawObj.sections)) {
-                        return rawObj.sections;
-                    }
+        formatRawWordsToSections(rawObj) {
+            // 1. Already an array of sections
+            if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
+                return rawObj;
+            }
+            // 2. Has a sections property
+            if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) && rawObj.sections) {
+                return rawObj.sections;
+            }
 
-                    // Flatten input into a clean array
-                    let flatArray = [];
-                    if (Array.isArray(rawObj)) {
-                        flatArray = rawObj.map((item, idx) => ({
-                            num: item.num || (idx + 1),
-                            german: item.german || item.deutsch || '',
-                            meaning: item.english || item.meaning || '',
-                            type: 'Term'
-                        }));
-                    } else if (rawObj && typeof rawObj === 'object') {
-                        let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a) - parseInt(b));
-                        flatArray = wordKeys.map((k, idx) => ({
-                            num: parseInt(k) || (idx + 1),
-                            german: rawObj[k].german || rawObj[k].deutsch || '',
-                            meaning: rawObj[k].english || rawObj[k].meaning || '',
-                            type: 'Term'
-                        }));
-                    }
+            let flatArray = [];
 
-                    // Chunk flat array into groups of 25
-                    let chunks = [];
-                    for (let i = 0; i < flatArray.length; i += 25) {
-                        let chunkWords = flatArray.slice(i, i + 25);
-                        let startNum = chunkWords[0].num;
-                        let endNum = chunkWords[chunkWords.length - 1].num;
-                        chunks.push({
-                            id: 'sec_' + (chunks.length + 1),
-                            name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
-                            words: chunkWords
-                        });
-                    }
-                    return chunks;
-                },
+            // 3. Handle standard JavaScript Array of word objects
+            if (Array.isArray(rawObj)) {
+                flatArray = rawObj.map((item, idx) => ({
+                    num: typeof item.num === 'number' ? item.num : (idx + 1),
+                    german: item.german || item.deutsch || '',
+                    meaning: item.english || item.meaning || '',
+                    type: 'Term'
+                }));
+            } 
+            // 4. Handle Object Dictionary (e.g. {"1": {...}, "2": {...}})
+            else if (rawObj && typeof rawObj === 'object') {
+                let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                flatArray = wordKeys.map((k, idx) => {
+                    let item = rawObj[k];
+                    let parsedNum = parseInt(k, 10);
+                    return {
+                        num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
+                        german: item.german || item.deutsch || '',
+                        meaning: item.english || item.meaning || '',
+                        type: 'Term'
+                    };
+                });
+            }
+
+            // Chunk into groups of 25
+            let chunks = [];
+            for (let i = 0; i < flatArray.length; i += 25) {
+                let chunkWords = flatArray.slice(i, i + 25);
+                let startNum = chunkWords[0].num;
+                let endNum = chunkWords[chunkWords.length - 1].num;
+                chunks.push({
+                    id: 'sec_' + (chunks.length + 1),
+                    name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
+                    words: chunkWords
+                });
+            }
+            return chunks;
+        },
 
                 speak(text) {
                     let utteranceText = typeof text === 'string' ? text : this.builtSentenceText;
