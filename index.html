@@ -43,22 +43,26 @@
     <main class="max-w-6xl mx-auto px-4 sm:px-8 py-8">
 
         <!-- Controls: Search, Filters & Bookmarks (Hidden in special modes) -->
-        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory' && viewMode !== 'quiz' && viewMode !== 'builder'">
-            <div class="relative flex-1">
+        <div class="flex flex-col md:flex-row gap-4 mb-8 items-center" x-show="viewMode !== 'memory' && viewMode !== 'quiz' && viewMode !== 'builder'">
+            <div class="relative flex-1 w-full">
                 <input type="text" x-model="searchQuery" placeholder="Search German term, English meaning, or number..." 
                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition">
                 <svg class="w-5 h-5 text-slate-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <button @click="showStarredOnly = !showStarredOnly" :class="showStarredOnly ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800 text-slate-300 border-slate-700'" class="px-4 py-3 rounded-lg border font-medium transition flex items-center justify-center gap-2">
+            <button @click="showStarredOnly = !showStarredOnly" :class="showStarredOnly ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800 text-slate-300 border-slate-700'" class="px-4 py-3 rounded-lg border font-medium transition flex items-center justify-center gap-2 h-[46px]">
                 <span>★ Starred Only</span>
             </button>
-            <div class="md:w-64">
+            <div class="md:w-64 w-full">
                 <select x-model="selectedSection" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="all">All Sections (<span x-text="allFlattenedWords.length"></span> words)</option>
                     <template x-for="sec in sections" :key="sec.id">
                         <option :value="sec.id" x-text="sec.name"></option>
                     </template>
                 </select>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 flex items-center justify-between gap-4 w-full md:w-auto h-[46px]">
+                <span class="text-xs text-slate-300 font-medium whitespace-nowrap">Custom JSON:</span>
+                <input type="file" @change="loadCustomFile($event)" accept=".json,.JSON" class="text-xs text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer w-full">
             </div>
         </div>
 
@@ -122,7 +126,7 @@
         <div x-show="viewMode === 'builder'" class="max-w-4xl mx-auto space-y-6">
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
                 <h3 class="text-xl font-bold text-amber-400 mb-2">✍️ Sentence Builder Workshop</h3>
-                <p class="text-slate-400 text-sm mb-4">Click building blocks (pronouns, connectors, verbs, nouns, particles) or words from your database to construct a German sentence. Click words in your workspace to remove them.</p>
+                <p class="text-slate-400 text-sm mb-4">Click building blocks (pronouns, connectors, verbs, modal particles) or words from your database to construct a German sentence. Click words in your workspace to remove them.</p>
 
                 <!-- Sentence Workspace -->
                 <div class="bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl p-6 min-h-[100px] flex flex-wrap items-center gap-3 mb-6">
@@ -294,7 +298,7 @@
     </footer>
 
     <!-- JavaScript Data and Application Logic -->
-   <script>
+    <script>
         function vocabApp() {
             return {
                 viewMode: 'list',
@@ -362,19 +366,19 @@
                         this.dataSource = 'Fallback Array';
                     }
 
-                    // 2. Load Grammar Toolbox Files (connectors.json, modals.json, verbs.json)
+                    // 2. Load Grammar Toolbox Files (connectors.JSON, modals.JSON, verbs.JSON)
                     const backupToolbox = {
                         connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
                         verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'weiß', 'gibt', 'lebt', 'sucht'],
                         particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
                     };
 
-                   try {
-    let [connRes, modRes, verbRes] = await Promise.all([
-        fetch('connectors.JSON').catch(() => null),
-        fetch('modals.JSON').catch(() => null),
-        fetch('verbs.JSON').catch(() => null)
-    ]);
+                    try {
+                        let [connRes, modRes, verbRes] = await Promise.all([
+                            fetch('connectors.JSON').catch(() => null),
+                            fetch('modals.JSON').catch(() => null),
+                            fetch('verbs.JSON').catch(() => null)
+                        ]);
 
                         this.grammarToolbox.connectors = connRes && connRes.ok ? await connRes.json() : backupToolbox.connectors;
                         this.grammarToolbox.particles = modRes && modRes.ok ? await modRes.json() : backupToolbox.particles;
@@ -384,6 +388,28 @@
                         this.grammarToolbox.particles = backupToolbox.particles;
                         this.grammarToolbox.verbs = backupToolbox.verbs;
                     }
+                },
+
+                loadCustomFile(event) {
+                    let file = event.target.files[0];
+                    if (!file) return;
+                    let reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            let data = JSON.parse(e.target.result);
+                            if (Array.isArray(data)) {
+                                this.sections = data;
+                            } else if (data.sections) {
+                                this.sections = data.sections;
+                            } else {
+                                this.sections = this.formatRawWordsToSections(data);
+                            }
+                            this.dataSource = file.name + ' (Local Upload)';
+                        } catch (err) {
+                            alert('Invalid JSON file format.');
+                        }
+                    };
+                    reader.readAsText(file);
                 },
 
                 formatRawWordsToSections(rawObj) {
