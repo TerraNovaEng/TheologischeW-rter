@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Bible & Theological Vocabulary (201–400)</title>
+    <title>German Bible & Theological Vocabulary (800 Words)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
@@ -15,20 +15,21 @@
         .rotate-y-180 { transform: rotateY(180deg); }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans" x-data="vocabApp()">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans" x-data="vocabApp()" x-init="initData()">
 
     <!-- Header -->
     <header class="bg-slate-800 border-b border-slate-700 py-6 px-4 sm:px-8 shadow-md">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <span class="text-xs uppercase tracking-widest text-amber-400 font-semibold">TerraNova Engineering Lab</span>
-                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">German Bible Vocabulary (201–400)</h1>
-                <p class="text-slate-400 text-sm mt-1">Lutherbibel theological terminology and thematic word study.</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">German Bible Vocabulary (800 Words)</h1>
+                <p class="text-slate-400 text-sm mt-1">Lutherbibel theological terminology and interactive study.</p>
             </div>
             <!-- View Mode Switcher -->
-            <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
-                <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-medium transition">List View</button>
-                <button @click="viewMode = 'cards'" :class="viewMode === 'cards' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-4 py-2 rounded-md text-sm font-medium transition">Flashcards</button>
+            <div class="flex flex-wrap bg-slate-900 p-1 rounded-lg border border-slate-700">
+                <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">List View</button>
+                <button @click="viewMode = 'cards'" :class="viewMode === 'cards' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Flashcards</button>
+                <button @click="viewMode = 'memory'; initMemoryGame()" :class="viewMode === 'memory' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Memory Match</button>
             </div>
         </div>
     </header>
@@ -36,8 +37,8 @@
     <!-- Main Content -->
     <main class="max-w-6xl mx-auto px-4 sm:px-8 py-8">
 
-        <!-- Controls: Search & Filters -->
-        <div class="flex flex-col md:flex-row gap-4 mb-8">
+        <!-- Controls: Search & Filters (Hidden in Memory Match mode) -->
+        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory'">
             <!-- Search Bar -->
             <div class="relative flex-1">
                 <input type="text" x-model="searchQuery" placeholder="Search German term, English meaning, or number..." 
@@ -47,7 +48,7 @@
             <!-- Section Filter -->
             <div class="md:w-72">
                 <select x-model="selectedSection" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
-                    <option value="all">All Sections (201–400)</option>
+                    <option value="all">All Sections (800 Words)</option>
                     <template x-for="sec in sections" :key="sec.id">
                         <option :value="sec.id" x-text="sec.name"></option>
                     </template>
@@ -115,6 +116,57 @@
             </div>
         </div>
 
+        <!-- MEMORY MATCH GAME VIEW -->
+        <div x-show="viewMode === 'memory'" class="max-w-4xl mx-auto">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl mb-6 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Pairs</span>
+                        <span class="text-xl font-bold text-amber-400" x-text="matchedPairs + ' / ' + totalPairs"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Moves</span>
+                        <span class="text-xl font-bold text-white" x-text="memoryMoves"></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="text-sm text-slate-300">Difficulty:</label>
+                    <select x-model.number="memoryPairCount" @change="initMemoryGame()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500">
+                        <option value="6">6 Pairs (12 Cards)</option>
+                        <option value="8">8 Pairs (16 Cards)</option>
+                        <option value="12">12 Pairs (24 Cards)</option>
+                        <option value="16">16 Pairs (32 Cards)</option>
+                    </select>
+                    <button @click="initMemoryGame()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">New Game</button>
+                </div>
+            </div>
+
+            <!-- Win Message Banner -->
+            <template x-if="matchedPairs === totalPairs && totalPairs > 0">
+                <div class="bg-emerald-900/80 border border-emerald-600 text-emerald-100 p-6 rounded-xl text-center mb-6 shadow-lg animate-bounce">
+                    <h3 class="text-2xl font-bold mb-1">🎉 Excellent Work!</h3>
+                    <p class="text-sm">You successfully matched all vocabulary pairs in <span class="font-bold" x-text="memoryMoves"></span> moves!</p>
+                    <button @click="initMemoryGame()" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium transition shadow">Play Again</button>
+                </div>
+            </template>
+
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <template x-for="card in memoryCards" :key="card.id">
+                    <div @click="flipCard(card)" 
+                         class="h-28 bg-slate-800 border-2 rounded-xl flex items-center justify-center p-3 text-center cursor-pointer transition transform duration-300 select-none shadow-md"
+                         :class="{
+                            'border-slate-700 hover:border-amber-500 bg-slate-800': !card.flipped && !card.matched,
+                            'border-amber-500 bg-slate-900 text-white scale-105': card.flipped && !card.matched,
+                            'border-emerald-600 bg-emerald-950/40 text-emerald-300 opacity-80 cursor-default': card.matched
+                         }">
+                        <div x-show="!card.flipped && !card.matched" class="text-slate-500 font-bold text-xl">#</div>
+                        <div x-show="card.flipped || card.matched" class="text-xs sm:text-sm font-semibold" x-text="card.text"></div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer -->
@@ -131,60 +183,65 @@
                 selectedSection: 'all',
                 currentCardIndex: 0,
                 flipped: false,
-                sections: [
-                    {
-                        id: 'sec1',
-                        name: '1. Governance, War & Society (Herrschaft, Krieg und Gesellschaft)',
-                        words: [
-                            { num: 201, german: 'das Reich', meaning: 'Kingdom / empire', type: 'Noun', note: 'expanded context' },
-                            { num: 202, german: 'die Herrschaft', meaning: 'Dominion / rule / authority', type: 'Noun', note: '' },
-                            { num: 203, german: 'der Richter', meaning: 'Judge', type: 'Noun', note: '' },
-                            { num: 204, german: 'das Schwert', meaning: 'Sword', type: 'Noun', note: '' },
-                            { num: 205, german: 'der Krieg', meaning: 'War', type: 'Noun', note: '' },
-                            { num: 206, german: 'der Frieden', meaning: 'Peace', type: 'Noun', note: 'variant: der Friede' },
-                            { num: 207, german: 'der Sieg', meaning: 'Victory', type: 'Noun', note: '' },
-                            { num: 208, german: 'die Schlacht', meaning: 'Battle', type: 'Noun', note: '' },
-                            { num: 209, german: 'das Heer', meaning: 'Army / host', type: 'Noun', note: '' },
-                            { num: 210, german: 'der Hauptmann', meaning: 'Centurion / captain', type: 'Noun', note: '' },
-                            { num: 211, german: 'der Diener', meaning: 'Servant / minister', type: 'Noun', note: '' },
-                            { num: 212, german: 'die Obrigkeit', meaning: 'Governing authorities / magistrates', type: 'Noun', note: '' },
-                            { num: 213, german: 'das Gesetz', meaning: 'Law', type: 'Noun', note: 'expanded' },
-                            { num: 214, german: 'die Satzung', meaning: 'Statute / ordinance', type: 'Noun', note: '' },
-                            { num: 215, german: 'das Gebot', meaning: 'Commandment', type: 'Noun', note: 'expanded' },
-                            { num: 216, german: 'die Strafe', meaning: 'Punishment', type: 'Noun', note: '' },
-                            { num: 217, german: 'die Rache', meaning: 'Vengeance / revenge', type: 'Noun', note: '' },
-                            { num: 218, german: 'das Zeugnis', meaning: 'Testimony / witness', type: 'Noun', note: '' },
-                            { num: 219, german: 'der Zeuge', meaning: 'Witness', type: 'Noun', note: '' },
-                            { num: 220, german: 'die Bürde', meaning: 'Burden / load', type: 'Noun', note: '' }
-                        ]
-                    },
-                    {
-                        id: 'sec2',
-                        name: '2. Faith, Spirit & Inner Life (Glaube und inneres Leben)',
-                        words: [
-                            { num: 221, german: 'die Andacht', meaning: 'Devotion / quiet time', type: 'Noun', note: '' },
-                            { num: 222, german: 'die Ehrfurcht', meaning: 'Reverence / awe / fear of God', type: 'Noun', note: '' },
-                            { num: 223, german: 'der Trost', meaning: 'Comfort / consolation', type: 'Noun', note: '' },
-                            { num: 224, german: 'die Zuversicht', meaning: 'Confidence / assurance', type: 'Noun', note: '' },
-                            { num: 225, german: 'die Geduld', meaning: 'Patience / endurance', type: 'Noun', note: '' },
-                            { num: 226, german: 'die Demut', meaning: 'Humility', type: 'Noun', note: '' },
-                            { num: 227, german: 'der Stolz', meaning: 'Pride', type: 'Noun', note: '' },
-                            { num: 228, german: 'die Weisheit', meaning: 'Wisdom', type: 'Noun', note: '' },
-                            { num: 229, german: 'der Verstand', meaning: 'Understanding / mind / intellect', type: 'Noun', note: '' },
-                            { num: 230, german: 'die Vernunft', meaning: 'Reason / sense', type: 'Noun', note: '' },
-                            { num: 231, german: 'das Gewissen', meaning: 'Conscience', type: 'Noun', note: '' },
-                            { num: 232, german: 'die Reue', meaning: 'Regret / remorse', type: 'Noun', note: '' },
-                            { num: 233, german: 'die Buße', meaning: 'Penance / repentance', type: 'Noun', note: '' },
-                            { num: 234, german: 'die Bekehrung', meaning: 'Conversion / turning', type: 'Noun', note: '' },
-                            { num: 235, german: 'die Taufe', meaning: 'Baptism', type: 'Noun', note: '' },
-                            { num: 236, german: 'das Abendmahl', meaning: "The Lord's Supper / Communion", type: 'Noun', note: '' },
-                            { num: 237, german: 'der Segen', meaning: 'Blessing', type: 'Noun', note: '' },
-                            { num: 238, german: 'der Fluch', meaning: 'Curse', type: 'Noun', note: '' },
-                            { num: 239, german: 'die Verheißung', meaning: 'Promise', type: 'Noun', note: '' },
-                            { num: 240, german: 'die Offenbarung', meaning: 'Revelation', type: 'Noun', note: '' }
-                        ]
+                sections: [],
+                
+                // Memory Match State
+                memoryPairCount: 8,
+                memoryCards: [],
+                flippedCards: [],
+                matchedPairs: 0,
+                totalPairs: 0,
+                memoryMoves: 0,
+                isChecking: false,
+
+                async initData() {
+                    try {
+                        let response = await fetch('words.json');
+                        if (response.ok) {
+                            let data = await response.json();
+                            this.sections = data.sections || data;
+                        } else {
+                            throw new Error('Failed to load words.json');
+                        }
+                    } catch (e) {
+                        // Fallback sample data covering up to 800 words structure if words.json isn't present
+                        this.sections = [
+                            {
+                                id: 'sec1',
+                                name: '1. Governance, War & Society (Herrschaft, Krieg und Gesellschaft)',
+                                words: [
+                                    { num: 201, german: 'das Reich', meaning: 'Kingdom / empire', type: 'Noun', note: 'expanded context' },
+                                    { num: 202, german: 'die Herrschaft', meaning: 'Dominion / rule / authority', type: 'Noun', note: '' },
+                                    { num: 203, german: 'der Richter', meaning: 'Judge', type: 'Noun', note: '' },
+                                    { num: 204, german: 'das Schwert', meaning: 'Sword', type: 'Noun', note: '' },
+                                    { num: 205, german: 'der Krieg', meaning: 'War', type: 'Noun', note: '' },
+                                    { num: 206, german: 'der Frieden', meaning: 'Peace', type: 'Noun', note: '' },
+                                    { num: 207, german: 'der Sieg', meaning: 'Victory', type: 'Noun', note: '' },
+                                    { num: 208, german: 'die Schlacht', meaning: 'Battle', type: 'Noun', note: '' },
+                                    { num: 209, german: 'das Heer', meaning: 'Army / host', type: 'Noun', note: '' },
+                                    { num: 210, german: 'der Hauptmann', meaning: 'Centurion / captain', type: 'Noun', note: '' }
+                                ]
+                            },
+                            {
+                                id: 'sec2',
+                                name: '2. Faith, Spirit & Inner Life (Glaube und inneres Leben)',
+                                words: [
+                                    { num: 221, german: 'die Andacht', meaning: 'Devotion / quiet time', type: 'Noun', note: '' },
+                                    { num: 222, german: 'die Ehrfurcht', meaning: 'Reverence / awe / fear of God', type: 'Noun', note: '' },
+                                    { num: 223, german: 'der Trost', meaning: 'Comfort / consolation', type: 'Noun', note: '' },
+                                    { num: 224, german: 'die Zuversicht', meaning: 'Confidence / assurance', type: 'Noun', note: '' },
+                                    { num: 225, german: 'die Geduld', meaning: 'Patience / endurance', type: 'Noun', note: '' },
+                                    { num: 226, german: 'die Demut', meaning: 'Humility', type: 'Noun', note: '' },
+                                    { num: 227, german: 'der Stolz', meaning: 'Pride', type: 'Noun', note: '' },
+                                    { num: 228, german: 'die Weisheit', meaning: 'Wisdom', type: 'Noun', note: '' },
+                                    { num: 229, german: 'der Verstand', meaning: 'Understanding / mind / intellect', type: 'Noun', note: '' },
+                                    { num: 230, german: 'die Vernunft', meaning: 'Reason / sense', type: 'Noun', note: '' }
+                                ]
+                            }
+                        ];
                     }
-                ],
+                },
+
                 get allFlattenedWords() {
                     let list = [];
                     this.sections.forEach(sec => {
@@ -194,6 +251,7 @@
                     });
                     return list;
                 },
+
                 get filteredSections() {
                     let q = this.searchQuery.toLowerCase();
                     return this.sections.map(sec => {
@@ -207,6 +265,7 @@
                         return { ...sec, words: filteredWords };
                     }).filter(sec => sec.words.length > 0);
                 },
+
                 get filteredWordsList() {
                     let list = [];
                     this.filteredSections.forEach(sec => {
@@ -216,25 +275,30 @@
                     });
                     return list;
                 },
+
                 get totalFilteredWords() {
                     return this.filteredWordsList.length;
                 },
+
                 get currentWord() {
                     let list = this.filteredWordsList;
                     if (list.length === 0) return { num: 0, german: 'No words found', meaning: '', type: '', sectionName: '' };
                     if (this.currentCardIndex >= list.length) this.currentCardIndex = 0;
                     return list[this.currentCardIndex];
                 },
+
                 nextCard() {
                     this.flipped = false;
                     let len = this.filteredWordsList.length;
                     if (len > 0) this.currentCardIndex = (this.currentCardIndex + 1) % len;
                 },
+
                 prevCard() {
                     this.flipped = false;
                     let len = this.filteredWordsList.length;
                     if (len > 0) this.currentCardIndex = (this.currentCardIndex - 1 + len) % len;
                 },
+
                 randomCard() {
                     let len = this.filteredWordsList.length;
                     if (len > 1) {
@@ -243,6 +307,73 @@
                             randomIndex = Math.floor(Math.random() * len);
                         } while (randomIndex === this.currentCardIndex);
                         this.currentCardIndex = randomIndex;
+                    }
+                },
+
+                // Memory Match Game Logic
+                initMemoryGame() {
+                    let allWords = [...this.allFlattenedWords];
+                    // Shuffle all words
+                    allWords.sort(() => Math.random() - 0.5);
+                    
+                    this.totalPairs = Math.min(this.memoryPairCount, allWords.length);
+                    let selectedWords = allWords.slice(0, this.totalPairs);
+
+                    let cards = [];
+                    selectedWords.forEach((word, index) => {
+                        // German Card
+                        cards.push({
+                            id: 'g_' + index,
+                            pairId: index,
+                            text: word.german,
+                            flipped: false,
+                            matched: false
+                        });
+                        // Meaning Card
+                        cards.push({
+                            id: 'm_' + index,
+                            pairId: index,
+                            text: word.meaning,
+                            flipped: false,
+                            matched: false
+                        });
+                    });
+
+                    // Shuffle deck
+                    this.memoryCards = cards.sort(() => Math.random() - 0.5);
+                    this.flippedCards = [];
+                    this.matchedPairs = 0;
+                    this.memoryMoves = 0;
+                    this.isChecking = false;
+                },
+
+                flipCard(card) {
+                    if (this.isChecking || card.flipped || card.matched) return;
+
+                    card.flipped = true;
+                    this.flippedCards.push(card);
+
+                    if (this.flippedCards.length === 2) {
+                        this.memoryMoves++;
+                        this.isChecking = true;
+                        let [card1, card2] = this.flippedCards;
+
+                        if (card1.pairId === card2.pairId && card1.id !== card2.id) {
+                            // Match found
+                            card1.matched = true;
+                            card2.matched = true;
+                            this.matchedPairs++;
+                            this.flippedCards = [];
+                            this.isChecking = false;
+                        } else {
+                            // No match, flip back after delay
+                            setTimeout(() => {
+                                card1.flipped = false;
+                                card2.flipped = false;
+                                this.flippedCards = [];
+                                this.isChecking = false;
+                            }, 900);
+                        }
                     }
                 }
             }
