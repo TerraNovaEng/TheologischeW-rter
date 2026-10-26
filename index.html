@@ -300,6 +300,18 @@
     <!-- JavaScript Data and Application Logic -->
     <script>
         function vocabApp() {
+            // Normalizes toolbox JSON whether it's an array, object dictionary, or object property list
+            const normalizeToolbox = (data, fallbackArray) => {
+                if (!data) return fallbackArray;
+                if (Array.isArray(data)) {
+                    return data.map(item => typeof item === 'string' ? item : (item.german || item.word || item.text || String(item)));
+                }
+                if (typeof data === 'object') {
+                    return Object.values(data).map(item => typeof item === 'string' ? item : (item.german || item.word || item.text || String(item)));
+                }
+                return fallbackArray;
+            };
+
             return {
                 viewMode: 'list',
                 searchQuery: '',
@@ -380,9 +392,13 @@
                             fetch('verbs.JSON').catch(() => null)
                         ]);
 
-                        this.grammarToolbox.connectors = connRes && connRes.ok ? await connRes.json() : backupToolbox.connectors;
-                        this.grammarToolbox.particles = modRes && modRes.ok ? await modRes.json() : backupToolbox.particles;
-                        this.grammarToolbox.verbs = verbRes && verbRes.ok ? await verbRes.json() : backupToolbox.verbs;
+                        let connData = connRes && connRes.ok ? await connRes.json() : null;
+                        let modData = modRes && modRes.ok ? await modRes.json() : null;
+                        let verbData = verbRes && verbRes.ok ? await verbRes.json() : null;
+
+                        this.grammarToolbox.connectors = normalizeToolbox(connData, backupToolbox.connectors);
+                        this.grammarToolbox.particles = normalizeToolbox(modData, backupToolbox.particles);
+                        this.grammarToolbox.verbs = normalizeToolbox(verbData, backupToolbox.verbs);
                     } catch (err) {
                         this.grammarToolbox.connectors = backupToolbox.connectors;
                         this.grammarToolbox.particles = backupToolbox.particles;
@@ -412,56 +428,49 @@
                     reader.readAsText(file);
                 },
 
-        formatRawWordsToSections(rawObj) {
-            // 1. Already an array of sections
-            if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
-                return rawObj;
-            }
-            // 2. Has a sections property
-            if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) && rawObj.sections) {
-                return rawObj.sections;
-            }
+                formatRawWordsToSections(rawObj) {
+                    if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
+                        return rawObj;
+                    }
+                    if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) && rawObj.sections) {
+                        return rawObj.sections;
+                    }
 
-            let flatArray = [];
+                    let flatArray = [];
+                    if (Array.isArray(rawObj)) {
+                        flatArray = rawObj.map((item, idx) => ({
+                            num: typeof item.num === 'number' ? item.num : (idx + 1),
+                            german: item.german || item.deutsch || '',
+                            meaning: item.english || item.meaning || '',
+                            type: 'Term'
+                        }));
+                    } else if (rawObj && typeof rawObj === 'object') {
+                        let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+                        flatArray = wordKeys.map((k, idx) => {
+                            let item = rawObj[k];
+                            let parsedNum = parseInt(k, 10);
+                            return {
+                                num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
+                                german: item.german || item.deutsch || '',
+                                meaning: item.english || item.meaning || '',
+                                type: 'Term'
+                            };
+                        });
+                    }
 
-            // 3. Handle standard JavaScript Array of word objects
-            if (Array.isArray(rawObj)) {
-                flatArray = rawObj.map((item, idx) => ({
-                    num: typeof item.num === 'number' ? item.num : (idx + 1),
-                    german: item.german || item.deutsch || '',
-                    meaning: item.english || item.meaning || '',
-                    type: 'Term'
-                }));
-            } 
-            // 4. Handle Object Dictionary (e.g. {"1": {...}, "2": {...}})
-            else if (rawObj && typeof rawObj === 'object') {
-                let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-                flatArray = wordKeys.map((k, idx) => {
-                    let item = rawObj[k];
-                    let parsedNum = parseInt(k, 10);
-                    return {
-                        num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
-                        german: item.german || item.deutsch || '',
-                        meaning: item.english || item.meaning || '',
-                        type: 'Term'
-                    };
-                });
-            }
-
-            // Chunk into groups of 25
-            let chunks = [];
-            for (let i = 0; i < flatArray.length; i += 25) {
-                let chunkWords = flatArray.slice(i, i + 25);
-                let startNum = chunkWords[0].num;
-                let endNum = chunkWords[chunkWords.length - 1].num;
-                chunks.push({
-                    id: 'sec_' + (chunks.length + 1),
-                    name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
-                    words: chunkWords
-                });
-            }
-            return chunks;
-        },
+                    let chunks = [];
+                    for (let i = 0; i < flatArray.length; i += 25) {
+                        let chunkWords = flatArray.slice(i, i + 25);
+                        let startNum = chunkWords[0].num;
+                        let endNum = chunkWords[chunkWords.length - 1].num;
+                        chunks.push({
+                            id: 'sec_' + (chunks.length + 1),
+                            name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
+                            words: chunkWords
+                        });
+                    }
+                    return chunks;
+                },
 
                 speak(text) {
                     let utteranceText = typeof text === 'string' ? text : this.builtSentenceText;
