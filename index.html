@@ -123,7 +123,7 @@
         </div>
 
         <!-- SENTENCE BUILDER WORKSHOP VIEW -->
-        <div x-show="viewMode === 'builder'" class="max-w-4xl mx-auto space-y-6">
+        <div x-show="viewMode === 'builder'" class="max-w-6xl mx-auto space-y-6">
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
                 <h3 class="text-xl font-bold text-amber-400 mb-2">✍️ Sentence Builder Workshop</h3>
                 <p class="text-slate-400 text-sm mb-4">Click building blocks (pronouns, connectors, verbs, modal particles) or words from your database to construct a German sentence. Click words in your workspace to remove them.</p>
@@ -162,40 +162,70 @@
                 </template>
             </div>
 
-            <!-- Building Blocks Toolbar -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Building Blocks Toolbar (Side by Side Grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Pronouns & Connectors -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
-                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Pronouns & Connectors</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <template x-for="item in grammarToolbox.connectors" :key="item">
-                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
-                        </template>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider">Pronouns & Connectors</h4>
+                            <span class="text-[10px] text-slate-400 font-mono" x-text="(connPage + 1) + '/' + maxConnPages"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4 min-h-[100px]">
+                            <template x-for="item in paginatedConnectors" :key="item">
+                                <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-700">
+                        <button @click="connPage = (connPage - 1 + maxConnPages) % maxConnPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Prev</button>
+                        <button @click="randomConnPage()" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded text-xs transition">Random</button>
+                        <button @click="connPage = (connPage + 1) % maxConnPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Next</button>
                     </div>
                 </div>
 
                 <!-- Core Verbs -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
-                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Verbs</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <template x-for="item in grammarToolbox.verbs" :key="item">
-                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
-                        </template>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider">Verbs</h4>
+                            <span class="text-[10px] text-slate-400 font-mono" x-text="(verbPage + 1) + '/' + maxVerbPages"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4 min-h-[100px]">
+                            <template x-for="item in paginatedVerbs" :key="item">
+                                <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-700">
+                        <button @click="verbPage = (verbPage - 1 + maxVerbPages) % maxVerbPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Prev</button>
+                        <button @click="randomVerbPage()" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded text-xs transition">Random</button>
+                        <button @click="verbPage = (verbPage + 1) % maxVerbPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Next</button>
                     </div>
                 </div>
 
                 <!-- Modal Particles -->
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
-                    <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider mb-3">Modal Particles</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <template x-for="item in grammarToolbox.particles" :key="item">
-                            <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
-                        </template>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider">Modal Particles</h4>
+                            <span class="text-[10px] text-slate-400 font-mono" x-text="(partPage + 1) + '/' + maxPartPages"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4 min-h-[100px]">
+                            <template x-for="item in paginatedParticles" :key="item">
+                                <button @click="addToSentence(item)" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition" x-text="item"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-700">
+                        <button @click="partPage = (partPage - 1 + maxPartPages) % maxPartPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Prev</button>
+                        <button @click="randomPartPage()" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded text-xs transition">Random</button>
+                        <button @click="partPage = (partPage + 1) % maxPartPages" class="bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 px-2.5 py-1 rounded text-xs transition">Next</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Vocabulary Quick Add from Database (Paged 25 words at a time) -->
+            <!-- Vocabulary Quick Add from Database -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
                     <h4 class="font-bold text-amber-400 text-sm uppercase tracking-wider">
@@ -342,6 +372,13 @@
                 feedback: null,
                 builderPage: 0,
                 pageSize: 25,
+                
+                // Toolbox Pagination States
+                connPage: 0,
+                verbPage: 0,
+                partPage: 0,
+                toolboxPageSize: 15,
+
                 grammarToolbox: {
                     connectors: [],
                     verbs: [],
@@ -577,6 +614,7 @@
                     return list;
                 },
 
+                // Database Paging Helpers
                 get maxBuilderPages() {
                     let total = this.allFlattenedWords.length;
                     return Math.max(1, Math.ceil(total / this.pageSize));
@@ -607,6 +645,49 @@
                             rand = Math.floor(Math.random() * this.maxBuilderPages);
                         } while (rand === this.builderPage);
                         this.builderPage = rand;
+                    }
+                },
+
+                // Toolbox Paging Helpers
+                get maxConnPages() {
+                    return Math.max(1, Math.ceil(this.grammarToolbox.connectors.length / this.toolboxPageSize));
+                },
+                get paginatedConnectors() {
+                    let start = this.connPage * this.toolboxPageSize;
+                    return this.grammarToolbox.connectors.slice(start, start + this.toolboxPageSize);
+                },
+                randomConnPage() {
+                    if (this.maxConnPages > 1) {
+                        let rand; do { rand = Math.floor(Math.random() * this.maxConnPages); } while (rand === this.connPage);
+                        this.connPage = rand;
+                    }
+                },
+
+                get maxVerbPages() {
+                    return Math.max(1, Math.ceil(this.grammarToolbox.verbs.length / this.toolboxPageSize));
+                },
+                get paginatedVerbs() {
+                    let start = this.verbPage * this.toolboxPageSize;
+                    return this.grammarToolbox.verbs.slice(start, start + this.toolboxPageSize);
+                },
+                randomVerbPage() {
+                    if (this.maxVerbPages > 1) {
+                        let rand; do { rand = Math.floor(Math.random() * this.maxVerbPages); } while (rand === this.verbPage);
+                        this.verbPage = rand;
+                    }
+                },
+
+                get maxPartPages() {
+                    return Math.max(1, Math.ceil(this.grammarToolbox.particles.length / this.toolboxPageSize));
+                },
+                get paginatedParticles() {
+                    let start = this.partPage * this.toolboxPageSize;
+                    return this.grammarToolbox.particles.slice(start, start + this.toolboxPageSize);
+                },
+                randomPartPage() {
+                    if (this.maxPartPages > 1) {
+                        let rand; do { rand = Math.floor(Math.random() * this.maxPartPages); } while (rand === this.partPage);
+                        this.partPage = rand;
                     }
                 },
 
