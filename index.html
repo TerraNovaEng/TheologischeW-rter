@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Theological Vocabulary (Advanced 1001–1200)</title>
+    <title>German Theological Vocabulary (Complete 1200)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
@@ -22,16 +22,17 @@
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <span class="text-xs uppercase tracking-widest text-amber-400 font-semibold">TerraNova Engineering Lab</span>
-                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">Advanced Theological Vocabulary (1001–1200)</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">German Theological Vocabulary (Complete)</h1>
                 <div class="flex items-center gap-3 mt-1">
-                    <p class="text-slate-400 text-sm">High-level theological terminology and interactive study.</p>
+                    <p class="text-slate-400 text-sm">Interactive study, flashcards, memory match & quiz suite.</p>
                     <span class="text-xs px-2.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300 font-mono" x-text="'Source: ' + dataSource"></span>
                 </div>
             </div>
             <!-- View Mode Switcher -->
             <div class="flex flex-wrap bg-slate-900 p-1 rounded-lg border border-slate-700">
-                <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">List View</button>
+                <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">List</button>
                 <button @click="viewMode = 'cards'" :class="viewMode === 'cards' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Flashcards</button>
+                <button @click="viewMode = 'quiz'; initQuiz()" :class="viewMode === 'quiz' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Quiz</button>
                 <button @click="viewMode = 'memory'; initMemoryGame()" :class="viewMode === 'memory' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'" class="px-3 py-2 rounded-md text-sm font-medium transition">Memory Match</button>
             </div>
         </div>
@@ -40,18 +41,22 @@
     <!-- Main Content -->
     <main class="max-w-6xl mx-auto px-4 sm:px-8 py-8">
 
-        <!-- Controls: Search & Filters -->
-        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory'">
+        <!-- Controls: Search, Filters & Bookmarks -->
+        <div class="flex flex-col md:flex-row gap-4 mb-8" x-show="viewMode !== 'memory' && viewMode !== 'quiz'">
             <!-- Search Bar -->
             <div class="relative flex-1">
                 <input type="text" x-model="searchQuery" placeholder="Search German term, English meaning, or number..." 
                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 pl-10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition">
                 <svg class="w-5 h-5 text-slate-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
+            <!-- Starred Filter Toggle -->
+            <button @click="showStarredOnly = !showStarredOnly" :class="showStarredOnly ? 'bg-amber-600 text-white border-amber-500' : 'bg-slate-800 text-slate-300 border-slate-700'" class="px-4 py-3 rounded-lg border font-medium transition flex items-center justify-center gap-2">
+                <span>★ Starred Only</span>
+            </button>
             <!-- Section Filter -->
-            <div class="md:w-72">
+            <div class="md:w-64">
                 <select x-model="selectedSection" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
-                    <option value="all">All Sections</option>
+                    <option value="all">All Sections (<span x-text="allFlattenedWords.length"></span> words)</option>
                     <template x-for="sec in sections" :key="sec.id">
                         <option :value="sec.id" x-text="sec.name"></option>
                     </template>
@@ -70,7 +75,10 @@
                                 <div>
                                     <div class="flex justify-between items-start mb-2">
                                         <span class="text-xs font-mono text-slate-500" x-text="'#' + item.num"></span>
-                                        <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-medium" x-text="item.type"></span>
+                                        <div class="flex items-center gap-2">
+                                            <button @click="speak(item.german)" title="Pronounce" class="text-slate-400 hover:text-amber-400 transition">🔊</button>
+                                            <button @click="toggleStar(item.num)" class="text-lg transition" :class="starredWords.includes(item.num) ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'">★</button>
+                                        </div>
                                     </div>
                                     <h3 class="text-lg font-bold text-white mb-1" x-text="item.german"></h3>
                                     <p class="text-slate-300 text-sm" x-text="item.meaning"></p>
@@ -84,8 +92,9 @@
 
         <!-- FLASHCARD VIEW -->
         <div x-show="viewMode === 'cards'" class="max-w-xl mx-auto">
-            <div class="text-center mb-4 text-sm text-slate-400">
-                Card <span x-text="currentCardIndex + 1"></span> of <span x-text="totalFilteredWords"></span>
+            <div class="flex justify-between items-center mb-4 text-sm text-slate-400">
+                <span>Card <span x-text="currentCardIndex + 1"></span> of <span x-text="totalFilteredWords"></span></span>
+                <button @click="toggleStar(currentWord.num)" class="text-xl transition" :class="starredWords.includes(currentWord.num) ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'">★</button>
             </div>
 
             <!-- Flashcard Component -->
@@ -94,6 +103,7 @@
                     <!-- Front (German) -->
                     <div class="absolute inset-0 w-full h-full bg-slate-800 border-2 border-slate-700 rounded-2xl flex flex-col items-center justify-center p-8 backface-hidden text-center">
                         <span class="absolute top-4 left-4 text-xs font-mono text-amber-400" x-text="'#' + currentWord.num"></span>
+                        <button @click.stop="speak(currentWord.german)" class="absolute top-4 right-4 text-lg text-slate-400 hover:text-amber-400">🔊</button>
                         <span class="text-xs uppercase tracking-wider text-slate-500 mb-2" x-text="currentWord.sectionName"></span>
                         <h2 class="text-3xl font-extrabold text-white mb-3" x-text="currentWord.german"></h2>
                         <span class="absolute bottom-4 text-xs text-slate-500">Click to flip</span>
@@ -103,7 +113,6 @@
                         <span class="absolute top-4 left-4 text-xs font-mono text-amber-400" x-text="'#' + currentWord.num"></span>
                         <span class="text-xs uppercase tracking-wider text-amber-400 mb-2">Meaning</span>
                         <h3 class="text-2xl font-bold text-white mb-2" x-text="currentWord.meaning"></h3>
-                        <span class="text-xs px-2.5 py-1 rounded bg-slate-900 text-slate-300 font-medium mt-2" x-text="currentWord.type"></span>
                         <span class="absolute bottom-4 text-xs text-slate-500">Click to flip back</span>
                     </div>
                 </div>
@@ -115,6 +124,40 @@
                 <button @click="flipped = false; randomCard()" class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-medium transition">Shuffle</button>
                 <button @click="nextCard()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 py-3 rounded-lg font-medium transition text-center">Next</button>
             </div>
+        </div>
+
+        <!-- MULTIPLE CHOICE QUIZ VIEW -->
+        <div x-show="viewMode === 'quiz'" class="max-w-xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                <span class="text-sm text-slate-400">Question <span x-text="quizIndex + 1"></span> of 10</span>
+                <span class="text-sm font-bold text-amber-400">Score: <span x-text="quizScore"></span></span>
+            </div>
+            
+            <template x-if="!quizFinished">
+                <div>
+                    <div class="text-center mb-8">
+                        <span class="text-xs text-slate-500 font-mono" x-text="'#' + currentQuizQuestion.num"></span>
+                        <h3 class="text-3xl font-extrabold text-white mt-2 mb-3" x-text="currentQuizQuestion.german"></h3>
+                        <button @click="speak(currentQuizQuestion.german)" class="text-sm text-amber-400 hover:underline">🔊 Listen Pronunciation</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="option in currentQuizOptions" :key="option">
+                            <button @click="answerQuiz(option)" 
+                                    class="w-full text-left bg-slate-900 border border-slate-700 hover:border-amber-500 p-4 rounded-xl text-white font-medium transition"
+                                    x-text="option"></button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="quizFinished">
+                <div class="text-center py-6">
+                    <h3 class="text-2xl font-bold mb-2">🎯 Quiz Completed!</h3>
+                    <p class="text-slate-300 mb-6">You scored <span class="font-bold text-amber-400" x-text="quizScore"></span> out of 10.</p>
+                    <button @click="initQuiz()" class="bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-xl font-medium transition shadow">Play Again</button>
+                </div>
+            </template>
         </div>
 
         <!-- MEMORY MATCH GAME VIEW -->
@@ -129,14 +172,20 @@
                         <span class="text-xs text-slate-400 uppercase tracking-wider block">Moves</span>
                         <span class="text-xl font-bold text-white" x-text="memoryMoves"></span>
                     </div>
+                    <div x-show="enableSprintTimer">
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Time</span>
+                        <span class="text-xl font-bold text-emerald-400" x-text="sprintSeconds + 's'"></span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <label class="text-sm text-slate-300">Difficulty:</label>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" x-model="enableSprintTimer" class="rounded bg-slate-900 border-slate-700 text-amber-600 focus:ring-0"> Timer Sprint
+                    </label>
                     <select x-model.number="memoryPairCount" @change="initMemoryGame()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500">
-                        <option value="6">6 Pairs (12 Cards)</option>
-                        <option value="8">8 Pairs (16 Cards)</option>
-                        <option value="12">12 Pairs (24 Cards)</option>
-                        <option value="16">16 Pairs (32 Cards)</option>
+                        <option value="6">6 Pairs</option>
+                        <option value="8">8 Pairs</option>
+                        <option value="12">12 Pairs</option>
+                        <option value="16">16 Pairs</option>
                     </select>
                     <button @click="initMemoryGame()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">New Game</button>
                 </div>
@@ -146,7 +195,7 @@
             <template x-if="matchedPairs === totalPairs && totalPairs > 0">
                 <div class="bg-emerald-900/80 border border-emerald-600 text-emerald-100 p-6 rounded-xl text-center mb-6 shadow-lg animate-bounce">
                     <h3 class="text-2xl font-bold mb-1">🎉 Excellent Work!</h3>
-                    <p class="text-sm">You successfully matched all vocabulary pairs in <span class="font-bold" x-text="memoryMoves"></span> moves!</p>
+                    <p class="text-sm">Matched all pairs in <span class="font-bold" x-text="memoryMoves"></span> moves <template x-if="enableSprintTimer"><span>in <span class="font-bold" x-text="sprintSeconds"></span> seconds</span></template>!</p>
                     <button @click="initMemoryGame()" class="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-medium transition shadow">Play Again</button>
                 </div>
             </template>
@@ -186,7 +235,17 @@
                 flipped: false,
                 sections: [],
                 dataSource: 'Loading...',
+                starredWords: JSON.parse(localStorage.getItem('starred_vocab') || '[]'),
+                showStarredOnly: false,
                 
+                // Quiz State
+                quizIndex: 0,
+                quizScore: 0,
+                quizFinished: false,
+                currentQuizQuestion: { num: 0, german: '', meaning: '' },
+                currentQuizOptions: [],
+                quizPool: [],
+
                 // Memory Match State
                 memoryPairCount: 8,
                 memoryCards: [],
@@ -195,6 +254,9 @@
                 totalPairs: 0,
                 memoryMoves: 0,
                 isChecking: false,
+                enableSprintTimer: false,
+                sprintSeconds: 0,
+                timerInterval: null,
 
                 async initData() {
                     try {
@@ -202,7 +264,6 @@
                         if (!response.ok) throw new Error('File not found');
                         let data = await response.json();
                         
-                        // Supports either structured sections or flat/key-value JSON formats
                         if (Array.isArray(data)) {
                             this.sections = data;
                         } else if (data.sections) {
@@ -212,208 +273,12 @@
                         }
                         this.dataSource = 'words.json (External File)';
                     } catch (e) {
-                        // Fallback to Hardcoded Array
+                        // Fallback sample full range if words.json isn't present
                         const fallbackWords = {
+                            "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
+                            "2": { "german": "die Erlösung", "english": "Redemption / salvation" },
                             "1001": { "german": "die Aseität", "english": "Aseity / self-existence of God" },
-                            "1002": { "german": "die Immanenz", "english": "Immanence / divine presence within creation" },
-                            "1003": { "german": "die Transzendenz", "english": "Transcendence / God's otherness above creation" },
-                            "1004": { "german": "die Unveränderlichkeit", "english": "Immutability / unchangeableness" },
-                            "1005": { "german": "die Unendlichkeit", "english": "Infinitude" },
-                            "1006": { "german": "die Ewigkeitsschau", "english": "Beatific vision / contemplation of eternity" },
-                            "1007": { "german": "die Prädestination", "english": "Predestination / divine decree" },
-                            "1008": { "german": "die Erwählung", "english": "Election / divine choice" },
-                            "1009": { "german": "die Verwerfung", "english": "Reprobation" },
-                            "1010": { "german": "die Präexistenz", "english": "Preexistence" },
-                            "1011": { "german": "die Inkarnation", "english": "Incarnation / embodiment of the Word" },
-                            "1012": { "german": "die Kenosis", "english": "Kenosis / self-emptying of Christ" },
-                            "1013": { "german": "die Theosis", "english": "Theosis / deification / divinization" },
-                            "1014": { "german": "die Soteriologie", "english": "Soteriology / doctrine of salvation" },
-                            "1015": { "german": "die Eschatologie", "english": "Eschatology / doctrine of end times" },
-                            "1016": { "german": "die Christologie", "english": "Christology / study of Christ's person and work" },
-                            "1017": { "german": "die Pneumatologie", "english": "Pneumatology / doctrine of the Holy Spirit" },
-                            "1018": { "german": "die Ekklesiologie", "english": "Ecclesiology / doctrine of the church" },
-                            "1019": { "german": "die Hamartiologie", "english": "Hamartiology / doctrine of sin" },
-                            "1020": { "german": "die Angelologie", "english": "Angelology / doctrine of angels" },
-                            "1021": { "german": "die Demonologie", "english": "Demonology / doctrine of demons" },
-                            "1022": { "german": "die Apologetik", "english": "Apologetics / defense of the faith" },
-                            "1023": { "german": "die Hermeneutik", "english": "Hermeneutics / biblical interpretation" },
-                            "1024": { "german": "die Exegese", "english": "Exegesis / critical textual explanation" },
-                            "1025": { "german": "die Homiletik", "english": "Homiletics / art of preaching" },
-                            "1026": { "german": "die Patristik", "english": "Patristics / study of early church fathers" },
-                            "1027": { "german": "die Scholastik", "english": "Scholasticism / medieval theological method" },
-                            "1028": { "german": "die Mystik", "english": "Mysticism / spiritual union with the divine" },
-                            "1029": { "german": "der Pietismus", "english": "Pietism / movement of inner devotion" },
-                            "1030": { "german": "der Synkretismus", "english": "Syncretism / blending of religious beliefs" },
-                            "1031": { "german": "der Deismus", "english": "Deism / belief in a clockmaker God" },
-                            "1032": { "german": "der Pantheismus", "english": "Pantheism / God is all and all is God" },
-                            "1033": { "german": "der Panentheismus", "english": "Panentheism / God is in all things" },
-                            "1034": { "german": "der Agnostizismus", "english": "Agnosticism" },
-                            "1035": { "german": "der Gnostizismus", "english": "Gnosticism / ancient esoteric movement" },
-                            "1036": { "german": "der Arianismus", "english": "Arianism / denial of Christ's full divinity" },
-                            "1037": { "german": "der Doketismus", "english": "Docetism / belief that Christ only seemed human" },
-                            "1038": { "german": "der Monophysitismus", "english": "Monophysitism / single nature of Christ" },
-                            "1039": { "german": "der Nestorianismus", "english": "Nestorianism / two separate persons in Christ" },
-                            "1040": { "german": "der Pelagianismus", "english": "Pelagianism / denial of original sin" },
-                            "1041": { "german": "der Antinomismus", "english": "Antinomianism / rejection of moral law" },
-                            "1042": { "german": "die Trinitätslehre", "english": "Doctrine of the Trinity" },
-                            "1043": { "german": "das Dogma", "english": "Dogma / authoritative doctrine" },
-                            "1044": { "german": "die Orthodoxie", "english": "Orthodoxy / correct belief" },
-                            "1045": { "german": "die Heterodoxie", "english": "Heterodoxy / unorthodox belief" },
-                            "1046": { "german": "die Häresie", "english": "Heresy / doctrinal deviation" },
-                            "1047": { "german": "das Schisma", "english": "Schism / division in the church" },
-                            "1048": { "german": "das Ökumenismus", "english": "Ecumenism / Christian unity movement" },
-                            "1049": { "german": "das Konzil", "english": "Ecumenical council / synod" },
-                            "1050": { "german": "die Bekenntnisschrift", "english": "Confessional writing / creed" },
-                            "1051": { "german": "das Apostolikum", "english": "Apostles' Creed" },
-                            "1052": { "german": "das Nicaenum", "english": "Nicene Creed" },
-                            "1053": { "german": "das Athanasianum", "english": "Athanasian Creed" },
-                            "1054": { "german": "die Liturgie", "english": "Liturgy / sacred rites" },
-                            "1055": { "german": "das Sakrament", "english": "Sacrament / holy ordinance" },
-                            "1056": { "german": "die Transsubstantiation", "english": "Transsubstantiation / Eucharistic change" },
-                            "1057": { "german": "die Konsubstantiation", "english": "Consubstantiation / Lutheran presence" },
-                            "1058": { "german": "die Ex-opere-operato-Lehre", "english": "Doctrine of sacramental efficacy" },
-                            "1059": { "german": "die Kerygma", "english": "Kerygma / proclamation of the gospel" },
-                            "1060": { "german": "die Didache", "english": "Didache / teaching of the apostles" },
-                            "1061": { "german": "die Apokatastasis", "english": "Apokatastasis / universal restoration" },
-                            "1062": { "german": "die Subordinatianismus", "english": "Subordinationism / hierarchy in Trinity" },
-                            "1063": { "german": "der Modalismus", "english": "Modalism / Sabellianism" },
-                            "1064": { "german": "der Theismus", "english": "Theism" },
-                            "1065": { "german": "die Theodizee", "english": "Theodicy / justification of God amid evil" },
-                            "1066": { "german": "die Eschaton", "english": "The Eschaton / end times reality" },
-                            "1067": { "german": "die Parusie", "english": "Parusia / second coming of Christ" },
-                            "1068": { "german": "das Chiliasmus", "english": "Chiliasm / millennialism" },
-                            "1069": { "german": "der Arminianismus", "english": "Arminianism / conditional election" },
-                            "1070": { "german": "der Calvinismus", "english": "Calvinism / Reformed theology" },
-                            "1071": { "german": "der Luthertum", "english": "Lutheranism" },
-                            "1072": { "german": "der Zinzendorfianismus", "english": "Moravian / Zinzendorf theology" },
-                            "1073": { "german": "die Neualtbiblische Theologie", "english": "Neo-orthodox theology" },
-                            "1074": { "german": "die Befreiungstheologie", "english": "Liberation theology" },
-                            "1075": { "german": "die Prozesstheologie", "english": "Process theology" },
-                            "1076": { "german": "die Dialektische Theologie", "english": "Dialectical theology (Barthian)" },
-                            "1077": { "german": "die Sakramentalität", "english": "Sacramentality / sacramental worldview" },
-                            "1078": { "german": "die Asketik", "english": "Asceticism / spiritual discipline" },
-                            "1079": { "german": "die Hagiographie", "english": "Hagiography / writing of saintly lives" },
-                            "1080": { "german": "die Soteria", "english": "Soteria / divine deliverance" },
-                            "1081": { "german": "die Doxa", "english": "Doxa / divine glory or praise" },
-                            "1082": { "german": "das Pneuma", "english": "Pneuma / divine spirit" },
-                            "1083": { "german": "der Logos", "english": "The Logos / divine Word" },
-                            "1084": { "german": "die Agape", "english": "Agape / unconditional divine love" },
-                            "1085": { "german": "die Ekklesia", "english": "Ecclesia / assembly of the called out" },
-                            "1086": { "german": "das Hamartema", "english": "Hamartema / missing the mark (sin)" },
-                            "1087": { "german": "die Metanoia", "english": "Metanoia / radical change of mind" },
-                            "1088": { "german": "das Mimesis", "english": "Mimesis / imitation of Christ" },
-                            "1089": { "german": "die Mystagogie", "english": "Mystagogy / initiation into mysteries" },
-                            "1090": { "german": "die Patrologie", "english": "Patrology / study of church fathers" },
-                            "1091": { "german": "die Prosopon", "english": "Prosopon / person or face in Christology" },
-                            "1092": { "german": "die Physis", "english": "Physis / divine or human nature" },
-                            "1093": { "german": "die Hypostase", "english": "Hypostasis / hypostatic union" },
-                            "1094": { "german": "die Ousia", "english": "Ousia / divine substance or essence" },
-                            "1095": { "german": "die Perichorese", "english": "Perichoresis / mutual indwelling of Trinity" },
-                            "1096": { "german": "die Theologumenon", "english": "Theologumenon / theological statement or opinion" },
-                            "1097": { "german": "die Tipologie", "english": "Typology / Old Testament prefiguring" },
-                            "1098": { "german": "die Albigenser", "english": "Albigensian movement history" },
-                            "1099": { "german": "die Waldenser", "english": "Waldensian reform movement" },
-                            "1100": { "german": "die Pietas", "english": "Piety / religious devotion" },
-                            "1101": { "german": "die Communio", "english": "Communion / fellowship" },
-                            "1102": { "german": "die Confessio", "english": "Confession / declaration of faith" },
-                            "1103": { "german": "die Justificatio", "english": "Justification / acquittal" },
-                            "1104": { "german": "die Regeneratio", "english": "Regeneration / new birth" },
-                            "1105": { "german": "die Sanctificatio", "english": "Sanctification" },
-                            "1106": { "german": "die Glorificatio", "english": "Glorification" },
-                            "1107": { "german": "die Vocation", "english": "Vocation / divine calling" },
-                            "1108": { "german": "die Unio mystica", "english": "Mystical union with Christ" },
-                            "1109": { "german": "die Lex orandi", "english": "Law of prayer / worship sets belief" },
-                            "1110": { "german": "die Lex credendi", "english": "Law of belief / doctrine" },
-                            "1111": { "german": "die Sola scriptura", "english": "Scripture alone" },
-                            "1112": { "german": "Die Sola fide", "english": "Faith alone" },
-                            "1113": { "german": "Die Sola gratia", "english": "Grace alone" },
-                            "1114": { "german": "Das Solus Christus", "english": "Christ alone" },
-                            "1115": { "german": "Das Soli Deo gloria", "english": "Glory to God alone" },
-                            "1116": { "german": "Die Analogia entis", "english": "Analogy of being" },
-                            "1117": { "german": "Die Analogia fidei", "english": "Analogy of faith" },
-                            "1118": { "german": "Das Coram Deo", "english": "Before the face of God" },
-                            "1119": { "german": "Das Simul iustus et peccator", "english": "Simultaneously righteous and sinner" },
-                            "1120": { "german": "Die Theologia crucis", "english": "Theology of the cross" },
-                            "1121": { "german": "Die Theologia gloriae", "english": "Theology of glory" },
-                            "1122": { "german": "Die Extrinsicatio", "english": "Extrinsic imputation of righteousness" },
-                            "1123": { "german": "Die Fides qua creditur", "english": "Faith by which one believes" },
-                            "1124": { "german": "Die Fides quae creditur", "english": "The content of faith" },
-                            "1125": { "german": "Derensus ad inferos", "english": "Descent into hell" },
-                            "1126": { "german": "Die Communicatio idiomatum", "english": "Communication of attributes in Christ" },
-                            "1127": { "german": "Das Extra Calvinisticum", "english": "Calvinist principle outside the finite" },
-                            "1128": { "german": "Die Repristination", "english": "Repristination theology" },
-                            "1129": { "german": "Das Sacrificium intellectus", "english": "Sacrifice of the intellect" },
-                            "1130": { "german": "Die Testimonium Spiritus Sancti", "english": "Internal testimony of the Holy Spirit" },
-                            "1131": { "german": "Die Finitum non capax infiniti", "english": "The finite cannot contain the infinite" },
-                            "1132": { "german": "Der Finitum capax infiniti", "english": "The finite is capable of the infinite" },
-                            "1133": { "german": "Die Epiklese", "english": "Epiclesis / invocation of the Spirit in liturgy" },
-                            "1134": { "german": "Die Anamnese", "english": "Anamnesis / memorial remembrance in liturgy" },
-                            "1135": { "german": "Die Doxologie", "english": "Doxology / liturgical praise of God" },
-                            "1136": { "german": "Das Missale", "english": "Missal / liturgical service book" },
-                            "1137": { "german": "Das Lectionarium", "english": "Lectionary / scripture reading schedule" },
-                            "1138": { "german": "Die Agende", "english": "Liturgical directory / church agenda" },
-                            "1139": { "german": "Die Paramentik", "english": "Paraments / altar hangings and colors" },
-                            "1140": { "german": "Das Kirchenjahr", "english": "Liturgical church year" },
-                            "1141": { "german": "Die Perikope", "english": "Pericope / appointed scripture text" },
-                            "1142": { "german": "Der Graduale", "english": "Gradual psalm / liturgical chant" },
-                            "1143": { "german": "Die Präfation", "english": "Preface to the Eucharistic prayer" },
-                            "1144": { "german": "Das Sanctus", "english": "Sanctus / Holy, Holy, Holy hymn" },
-                            "1145": { "german": "Das Agnus Dei", "english": "Agnus Dei / Lamb of God" },
-                            "1146": { "german": "Der Sursum corda", "english": "Lift up your hearts" },
-                            "1147": { "german": "Das Confiteor", "english": "Confession of sins" },
-                            "1148": { "german": "Die Absolutio", "english": "Pronouncement of forgiveness" },
-                            "1149": { "german": "Der Benediktus", "english": "Song of Zechariah" },
-                            "1150": { "german": "Das Magnifikat", "english": "Song of Mary" },
-                            "1151": { "german": "Das Nunc dimittis", "english": "Song of Simeon" },
-                            "1152": { "german": "Das Gloria in excelsis", "english": "Glory to God in the highest" },
-                            "1153": { "german": "Das Te Deum", "english": "Te Deum / ancient hymn of praise" },
-                            "1154": { "german": "Die Antiphon", "english": "Antiphon / responsive chant" },
-                            "1155": { "german": "Die Introitus", "english": "Introit / entrance psalm" },
-                            "1156": { "german": "Das Offertorium", "english": "Offertory" },
-                            "1157": { "german": "Die Postkommunion", "english": "Post-communion prayer" },
-                            "1158": { "german": "Die Benediktion", "english": "Final blessing / benediction" },
-                            "1159": { "german": "Das Votum", "english": "Opening invocation verse" },
-                            "1160": { "german": "Die Kasualie", "english": "Occasional pastoral service (wedding/funeral)" },
-                            "1161": { "german": "Die Ordination", "english": "Ordination to ministry" },
-                            "1162": { "german": "Die Konfirmation", "english": "Confirmation / affirmation of baptism" },
-                            "1163": { "german": "Die Visitation", "english": "Episcopal or presbyterial church visit" },
-                            "1164": { "german": "Das Presbyterium", "english": "Presbytery / governing church board" },
-                            "1165": { "german": "Die Synode", "english": "Synod / church assembly" },
-                            "1166": { "german": "Das Konsistorium", "english": "Consistory / church administrative council" },
-                            "1167": { "german": "Die Diakonie", "english": "Diakonia / social welfare ministry" },
-                            "1168": { "german": "Die Mission", "english": "Missionary outreach / missiology" },
-                            "1169": { "german": "Das Martyrium", "english": "Martyrdom / witness unto death" },
-                            "1170": { "german": "Die Bekenntniskirche", "english": "Confessing Church movement" },
-                            "1171": { "german": "Der Kirchenkampf", "english": "Church struggle under totalitarianism" },
-                            "1172": { "german": "Das Pietistische Erbe", "english": "Pietistic heritage" },
-                            "1173": { "german": "Die Erbauungsliteratur", "english": "Edifying devotional literature" },
-                            "1174": { "german": "Die Hausandacht", "english": "Family or domestic devotion" },
-                            "1175": { "german": "Die Stille Stunde", "english": "Quiet hour / contemplative prayer time" },
-                            "1176": { "german": "Das Seelsorgegespräch", "english": "Pastoral counseling session" },
-                            "1177": { "german": "Die Generalbeichte", "english": "General confession" },
-                            "1178": { "german": "Die Lebenswende", "english": "Spiritual turning point / conversion" },
-                            "1179": { "german": "Die Glaubensgewissheit", "english": "Assurance of faith" },
-                            "1180": { "german": "Die Gotteserkenntnis", "english": "Knowledge of God" },
-                            "1181": { "german": "Die Selbstoffenbarung", "english": "Divine self-disclosure" },
-                            "1182": { "german": "Das Offenbarungswort", "english": "Revealed word" },
-                            "1183": { "german": "Die Heilige Schrift", "english": "Holy Scriptures" },
-                            "1184": { "german": "Der Kanon", "english": "Scriptural canon" },
-                            "1185": { "german": "Die Apokryphen", "english": "Apocrypha / deuterocanonical books" },
-                            "1186": { "german": "Die Pseudepigraphen", "english": "Pseudepigrapha" },
-                            "1187": { "german": "Die Textkritik", "english": "Textual criticism / lower criticism" },
-                            "1188": { "german": "Die Formgeschichte", "english": "Form criticism" },
-                            "1189": { "german": "Die Redaktionsgeschichte", "english": "Redaction criticism" },
-                            "1190": { "german": "Die Traditionsgeschichte", "english": "Tradition history" },
-                            "1191": { "german": "Der Urtext", "english": "Original biblical text" },
-                            "1192": { "german": "Die Septuaginta", "english": "Septuagint / Greek Old Testament" },
-                            "1193": { "german": "Die Vulgata", "english": "Latin Vulgate" },
-                            "1194": { "german": "Der Textus receptus", "english": "Received text" },
-                            "1195": { "german": "Die Lutherbibel", "english": "Luther Bible translation" },
-                            "1196": { "german": "Die Zürcher Bibel", "english": "Zurich Bible translation" },
-                            "1197": { "german": "Die Einheitsübersetzung", "english": "Ecumenical German standard translation" },
-                            "1198": { "german": "Die Bibelwissenschaft", "english": "Biblical scholarship / science" },
-                            "1199": { "german": "Die Theologische Fakultät", "english": "Theological faculty / seminary" },
-                            "1200": { "german": "Die Doctor theologiae", "english": "Doctor of Theology (Dr. theol.)" }
+                            "1002": { "german": "die Immanenz", "english": "Immanence / divine presence within creation" }
                         };
                         this.sections = this.formatRawWordsToSections(fallbackWords);
                         this.dataSource = 'Hardcoded Fallback Array';
@@ -427,8 +292,8 @@
                         let chunkKeys = wordKeys.slice(i, i + 25);
                         let chunkWords = chunkKeys.map(k => ({
                             num: parseInt(k),
-                            german: rawObj[k].german,
-                            meaning: rawObj[k].english,
+                            german: rawObj[k].german || rawObj[k].deutsch,
+                            meaning: rawObj[k].english || rawObj[k].meaning,
                             type: 'Term'
                         }));
                         let startNum = chunkKeys[0];
@@ -440,6 +305,24 @@
                         });
                     }
                     return chunks;
+                },
+
+                speak(text) {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        let utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = 'de-DE';
+                        window.speechSynthesis.speak(utterance);
+                    }
+                },
+
+                toggleStar(num) {
+                    if (this.starredWords.includes(num)) {
+                        this.starredWords = this.starredWords.filter(n => n !== num);
+                    } else {
+                        this.starredWords.push(num);
+                    }
+                    localStorage.setItem('starred_vocab', JSON.stringify(this.starredWords));
                 },
 
                 get allFlattenedWords() {
@@ -460,7 +343,8 @@
                                                 w.meaning.toLowerCase().includes(q) || 
                                                 w.num.toString().includes(q);
                             let matchesSection = this.selectedSection === 'all' || sec.id === this.selectedSection;
-                            return matchesSearch && matchesSection;
+                            let matchesStar = !this.showStarredOnly || this.starredWords.includes(w.num);
+                            return matchesSearch && matchesSection && matchesStar;
                         });
                         return { ...sec, words: filteredWords };
                     }).filter(sec => sec.words.length > 0);
@@ -510,8 +394,52 @@
                     }
                 },
 
+                // Quiz Mode Logic
+                initQuiz() {
+                    let pool = [...this.allFlattenedWords];
+                    pool.sort(() => Math.random() - 0.5);
+                    this.quizPool = pool.slice(0, 10);
+                    this.quizIndex = 0;
+                    this.quizScore = 0;
+                    this.quizFinished = false;
+                    this.loadQuizQuestion();
+                },
+
+                loadQuizQuestion() {
+                    if (this.quizIndex >= this.quizPool.length) {
+                        this.quizFinished = true;
+                        return;
+                    }
+                    this.currentQuizQuestion = this.quizPool[this.quizIndex];
+                    let correctMeaning = this.currentQuizQuestion.meaning;
+
+                    let distractors = this.allFlattenedWords
+                        .filter(w => w.meaning !== correctMeaning)
+                        .map(w => w.meaning);
+                    distractors.sort(() => Math.random() - 0.5);
+
+                    let options = [correctMeaning, ...distractors.slice(0, 3)];
+                    this.currentQuizOptions = options.sort(() => Math.random() - 0.5);
+                },
+
+                answerQuiz(selectedOption) {
+                    if (selectedOption === this.currentQuizQuestion.meaning) {
+                        this.quizScore++;
+                    }
+                    this.quizIndex++;
+                    this.loadQuizQuestion();
+                },
+
                 // Memory Match Game Logic
                 initMemoryGame() {
+                    if (this.timerInterval) clearInterval(this.timerInterval);
+                    this.sprintSeconds = 0;
+                    if (this.enableSprintTimer) {
+                        this.timerInterval = setInterval(() => {
+                            if (this.matchedPairs < this.totalPairs) this.sprintSeconds++;
+                        }, 1000);
+                    }
+
                     let allWords = [...this.allFlattenedWords];
                     allWords.sort(() => Math.random() - 0.5);
                     
@@ -520,20 +448,8 @@
 
                     let cards = [];
                     selectedWords.forEach((word, index) => {
-                        cards.push({
-                            id: 'g_' + index,
-                            pairId: index,
-                            text: word.german,
-                            flipped: false,
-                            matched: false
-                        });
-                        cards.push({
-                            id: 'm_' + index,
-                            pairId: index,
-                            text: word.meaning,
-                            flipped: false,
-                            matched: false
-                        });
+                        cards.push({ id: 'g_' + index, pairId: index, text: word.german, flipped: false, matched: false });
+                        cards.push({ id: 'm_' + index, pairId: index, text: word.meaning, flipped: false, matched: false });
                     });
 
                     this.memoryCards = cards.sort(() => Math.random() - 0.5);
@@ -560,6 +476,9 @@
                             this.matchedPairs++;
                             this.flippedCards = [];
                             this.isChecking = false;
+                            if (this.matchedPairs === this.totalPairs && this.timerInterval) {
+                                clearInterval(this.timerInterval);
+                            }
                         } else {
                             setTimeout(() => {
                                 card1.flipped = false;
