@@ -294,7 +294,7 @@
     </footer>
 
     <!-- JavaScript Data and Application Logic -->
-    <script>
+   <script>
         function vocabApp() {
             return {
                 viewMode: 'list',
@@ -311,9 +311,9 @@
                 builtSentence: [],
                 feedback: null,
                 grammarToolbox: {
-                    connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
-                    verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'ist', 'weiß', 'gibt', 'lebt', 'sucht'],
-                    particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
+                    connectors: [],
+                    verbs: [],
+                    particles: []
                 },
                 
                 // Quiz State
@@ -337,6 +337,7 @@
                 timerInterval: null,
 
                 async initData() {
+                    // 1. Load Main Vocabulary (words.JSON)
                     try {
                         let response = await fetch('words.JSON');
                         if (!response.ok) throw new Error('File not found');
@@ -349,7 +350,7 @@
                         } else {
                             this.sections = this.formatRawWordsToSections(data);
                         }
-                        this.dataSource = 'words.JSON (External File)';
+                        this.dataSource = 'words.JSON';
                     } catch (e) {
                         const fallbackWords = {
                             "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
@@ -358,7 +359,30 @@
                             "1002": { "german": "die Immanenz", "english": "Immanence / divine presence within creation" }
                         };
                         this.sections = this.formatRawWordsToSections(fallbackWords);
-                        this.dataSource = 'Hardcoded Fallback Array';
+                        this.dataSource = 'Fallback Array';
+                    }
+
+                    // 2. Load Grammar Toolbox Files (connectors.json, modals.json, verbs.json)
+                    const backupToolbox = {
+                        connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
+                        verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'weiß', 'gibt', 'lebt', 'sucht'],
+                        particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
+                    };
+
+                    try {
+                        let [connRes, modRes, verbRes] = await Promise.all([
+                            fetch('connectors.json').catch(() => null),
+                            fetch('modals.json').catch(() => null),
+                            fetch('verbs.json').catch(() => null)
+                        ]);
+
+                        this.grammarToolbox.connectors = connRes && connRes.ok ? await connRes.json() : backupToolbox.connectors;
+                        this.grammarToolbox.particles = modRes && modRes.ok ? await modRes.json() : backupToolbox.particles;
+                        this.grammarToolbox.verbs = verbRes && verbRes.ok ? await verbRes.json() : backupToolbox.verbs;
+                    } catch (err) {
+                        this.grammarToolbox.connectors = backupToolbox.connectors;
+                        this.grammarToolbox.particles = backupToolbox.particles;
+                        this.grammarToolbox.verbs = backupToolbox.verbs;
                     }
                 },
 
