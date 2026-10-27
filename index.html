@@ -404,6 +404,7 @@
                 enableSprintTimer: false,
                 sprintSeconds: 0,
                 timerInterval: null,
+                previewTimeout: null,
 
                 async initData() {
                     // 1. Load Main Vocabulary (words.JSON)
@@ -781,29 +782,41 @@
                     this.loadQuizQuestion();
                 },
 
-                initMemoryGame() {
-                    if (this.timerInterval) clearInterval(this.timerInterval);
-                    this.sprintSeconds = 0;
-                    if (this.enableSprintTimer) {
-                        this.timerInterval = setInterval(() => {
-                            if (this.matchedPairs < this.totalPairs) this.sprintSeconds++;
-                        }, 1000);
-                    }
-                    let allWords = [...this.allFlattenedWords];
-                    allWords.sort(() => Math.random() - 0.5);
-                    this.totalPairs = Math.min(this.memoryPairCount, allWords.length);
-                    let selectedWords = allWords.slice(0, this.totalPairs);
-                    let cards = [];
-                    selectedWords.forEach((word, index) => {
-                        cards.push({ id: 'g_' + index, pairId: index, text: word.german, flipped: false, matched: false });
-                        cards.push({ id: 'm_' + index, pairId: index, text: word.meaning, flipped: false, matched: false });
-                    });
-                    this.memoryCards = cards.sort(() => Math.random() - 0.5);
-                    this.flippedCards = [];
-                    this.matchedPairs = 0;
-                    this.memoryMoves = 0;
-                    this.isChecking = false;
-                },
+    initMemoryGame() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.previewTimeout) clearTimeout(this.previewTimeout);
+    this.sprintSeconds = 0;
+    
+    let allWords = [...this.allFlattenedWords];
+    allWords.sort(() => Math.random() - 0.5);
+    this.totalPairs = Math.min(this.memoryPairCount, allWords.length);
+    let selectedWords = allWords.slice(0, this.totalPairs);
+    
+    let cards = [];
+    selectedWords.forEach((word, index) => {
+        cards.push({ id: 'g_' + index, pairId: index, text: word.german, flipped: true, matched: false });
+        cards.push({ id: 'm_' + index, pairId: index, text: word.meaning, flipped: true, matched: false });
+    });
+    
+    this.memoryCards = cards.sort(() => Math.random() - 0.5);
+    this.flippedCards = [];
+    this.matchedPairs = 0;
+    this.memoryMoves = 0;
+    this.isChecking = true; // Lock the board during preview
+
+    // Flip them back face down after 5 seconds and start the game/timer
+    this.previewTimeout = setTimeout(() => {
+        this.memoryCards.forEach(card => card.flipped = false);
+        this.isChecking = false; // Unlock the board
+
+        // Start sprint timer if enabled
+        if (this.enableSprintTimer) {
+            this.timerInterval = setInterval(() => {
+                if (this.matchedPairs < this.totalPairs) this.sprintSeconds++;
+            }, 1000);
+        }
+    }, 5000);
+},
 
                 flipCard(card) {
                     if (this.isChecking || card.flipped || card.matched) return;
