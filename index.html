@@ -406,126 +406,133 @@
                 timerInterval: null,
                 previewTimeout: null,
 
-                async initData() {
-                    // 1. Load Main Vocabulary (words.JSON)
-                    try {
-                        let response = await fetch('words.JSON');
-                        if (!response.ok) throw new Error('File not found');
-                        let data = await response.json();
-                        
-                        if (Array.isArray(data)) {
-                            this.sections = data;
-                        } else if (data.sections) {
-                            this.sections = data.sections;
-                        } else {
-                            this.sections = this.formatRawWordsToSections(data);
-                        }
-                        this.dataSource = 'words.JSON';
-                    } catch (e) {
-                        const fallbackWords = {
-                            "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
-                            "2": { "german": "die Erlösung", "english": "Redemption / salvation" },
-                            "1001": { "german": "die Aseität", "english": "Aseity / self-existence of God" },
-                            "1002": { "german": "die Immanenz", "english": "Immanence / divine presence within creation" }
-                        };
-                        this.sections = this.formatRawWordsToSections(fallbackWords);
-                        this.dataSource = 'Fallback Array';
-                    }
+              async initData() {
+    // 1. Load Main Vocabulary (words.JSON and words2.JSON)
+    try {
+        let [res1, res2] = await Promise.all([
+            fetch('words.JSON').catch(() => null),
+            fetch('words2.JSON').catch(() => null)
+        ]);
 
-                    // 2. Load Grammar Toolbox Files (connectors.JSON, modals.JSON, verbs.JSON)
-                    const backupToolbox = {
-                        connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
-                        verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'weiß', 'gibt', 'lebt', 'sucht'],
-                        particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
-                    };
+        let combinedRawData = {};
+        let nextNum = 1;
 
-                    try {
-                        let [connRes, modRes, verbRes] = await Promise.all([
-                            fetch('connectors.JSON').catch(() => null),
-                            fetch('modals.JSON').catch(() => null),
-                            fetch('verbs.JSON').catch(() => null)
-                        ]);
+        if (res1 && res1.ok) {
+            let data1 = await res1.json();
+            // Flatten or normalize words.json into a key-value map
+            combinedRawData = this.flattenToMap(data1, nextNum);
+            nextNum = Object.keys(combinedRawData).length + 1;
+        }
 
-                        let connData = connRes && connRes.ok ? await connRes.json() : null;
-                        let modData = modRes && modRes.ok ? await modRes.json() : null;
-                        let verbData = verbRes && verbRes.ok ? await verbRes.json() : null;
+        if (res2 && res2.ok) {
+            let data2 = await res2.json();
+            let flattened2 = this.flattenToMap(data2, nextNum);
+            // Merge both datasets
+            combinedRawData = { ...combinedRawData, ...flattened2 };
+        }
 
-                        this.grammarToolbox.connectors = normalizeToolbox(connData, backupToolbox.connectors);
-                        this.grammarToolbox.particles = normalizeToolbox(modData, backupToolbox.particles);
-                        this.grammarToolbox.verbs = normalizeToolbox(verbData, backupToolbox.verbs);
-                    } catch (err) {
-                        this.grammarToolbox.connectors = backupToolbox.connectors;
-                        this.grammarToolbox.particles = backupToolbox.particles;
-                        this.grammarToolbox.verbs = backupToolbox.verbs;
-                    }
-                },
+        if (Object.keys(combinedRawData).length > 0) {
+            this.sections = this.formatRawWordsToSections(combinedRawData);
+            this.dataSource = res2 && res2.ok ? 'words.JSON + words2.JSON' : 'words.JSON';
+        } else {
+            throw new Error('No valid data found');
+        }
+    } catch (e) {
+        const fallbackWords = {
+            "1": { "german": "die Ewigkeit", "english": "Eternity / everlasting" },
+            "2": { "article": "die", "noun": "Erlösung", "english": "Redemption / salvation" }
+        };
+        this.sections = this.formatRawWordsToSections(fallbackWords);
+        this.dataSource = 'Fallback Array';
+    }
 
-                loadCustomFile(event) {
-                    let file = event.target.files[0];
-                    if (!file) return;
-                    let reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            let data = JSON.parse(e.target.result);
-                            if (Array.isArray(data)) {
-                                this.sections = data;
-                            } else if (data.sections) {
-                                this.sections = data.sections;
-                            } else {
-                                this.sections = this.formatRawWordsToSections(data);
-                            }
-                            this.dataSource = file.name + ' (Local Upload)';
-                        } catch (err) {
-                            alert('Invalid JSON file format.');
-                        }
-                    };
-                    reader.readAsText(file);
-                },
+    // 2. Load Grammar Toolbox Files...
+    const backupToolbox = {
+        connectors: ['ich', 'du', 'er', 'sie', 'wir', 'ihr', 'der', 'die', 'das', 'und', 'aber', 'weil', 'dass', 'wenn', 'oder', 'nicht', 'mit', 'für', 'von', 'zu'],
+        verbs: ['ist', 'hat', 'wird', 'kann', 'soll', 'glaubt', 'spricht', 'sieht', 'weiß', 'gibt', 'lebt', 'sucht'],
+        particles: ['doch', 'mal', 'ja', 'schon', 'eigentlich', 'denn', 'etwa']
+    };
 
-                formatRawWordsToSections(rawObj) {
-                    if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
-                        return rawObj;
-                    }
-                    if (rawObj && typeof rawObj === 'object' && !Array.isArray(rawObj) && rawObj.sections) {
-                        return rawObj.sections;
-                    }
+    try {
+        let [connRes, modRes, verbRes] = await Promise.all([
+            fetch('connectors.JSON').catch(() => null),
+            fetch('modals.JSON').catch(() => null),
+            fetch('verbs.JSON').catch(() => null)
+        ]);
 
-                    let flatArray = [];
-                    if (Array.isArray(rawObj)) {
-                        flatArray = rawObj.map((item, idx) => ({
-                            num: typeof item.num === 'number' ? item.num : (idx + 1),
-                            german: item.german || item.deutsch || '',
-                            meaning: item.english || item.meaning || '',
-                            type: 'Term'
-                        }));
-                    } else if (rawObj && typeof rawObj === 'object') {
-                        let wordKeys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-                        flatArray = wordKeys.map((k, idx) => {
-                            let item = rawObj[k];
-                            let parsedNum = parseInt(k, 10);
-                            return {
-                                num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
-                                german: item.german || item.deutsch || '',
-                                meaning: item.english || item.meaning || '',
-                                type: 'Term'
-                            };
-                        });
-                    }
+        let connData = connRes && connRes.ok ? await connRes.json() : null;
+        let modData = modRes && modRes.ok ? await modRes.json() : null;
+        let verbData = verbRes && verbRes.ok ? await verbRes.json() : null;
 
-                    let chunks = [];
-                    for (let i = 0; i < flatArray.length; i += 25) {
-                        let chunkWords = flatArray.slice(i, i + 25);
-                        let startNum = chunkWords[0].num;
-                        let endNum = chunkWords[chunkWords.length - 1].num;
-                        chunks.push({
-                            id: 'sec_' + (chunks.length + 1),
-                            name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
-                            words: chunkWords
-                        });
-                    }
-                    return chunks;
-                },
+        this.grammarToolbox.connectors = normalizeToolbox(connData, backupToolbox.connectors);
+        this.grammarToolbox.particles = normalizeToolbox(modData, backupToolbox.particles);
+        this.grammarToolbox.verbs = normalizeToolbox(verbData, backupToolbox.verbs);
+    } catch (err) {
+        this.grammarToolbox.connectors = backupToolbox.connectors;
+        this.grammarToolbox.particles = backupToolbox.particles;
+        this.grammarToolbox.verbs = backupToolbox.verbs;
+    }
+},
 
+// Helper to normalize any input format into a uniform dictionary map
+flattenToMap(rawObj, startNum = 1) {
+    let map = {};
+    let currentIdx = startNum;
+
+    if (Array.isArray(rawObj)) {
+        rawObj.forEach((item) => {
+            let num = item.num || currentIdx++;
+            let german = item.german || item.deutsch || (item.article && item.noun ? `${item.article} ${item.noun}` : item.noun || '');
+            let english = item.english || item.meaning || '';
+            map[num] = { german, english };
+        });
+    } else if (rawObj && typeof rawObj === 'object') {
+        Object.keys(rawObj).forEach((k) => {
+            let item = rawObj[k];
+            let num = !isNaN(k) ? parseInt(k, 10) : currentIdx++;
+            let german = item.german || item.deutsch || (item.article && item.noun ? `${item.article} ${item.noun}` : item.noun || '');
+            let english = item.english || item.meaning || '';
+            map[num] = { german, english };
+        });
+    }
+    return map;
+},
+
+formatRawWordsToSections(rawObj) {
+    if (Array.isArray(rawObj) && rawObj.length > 0 && rawObj[0].words) {
+        return rawObj;
+    }
+    
+    let flatArray = [];
+    let keys = Object.keys(rawObj).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    
+    keys.forEach((k, idx) => {
+        let item = rawObj[k];
+        let parsedNum = parseInt(k, 10);
+        let germanText = item.german || (item.article && item.noun ? `${item.article} ${item.noun}` : item.noun || '');
+        let meaningText = item.english || item.meaning || '';
+        
+        flatArray.push({
+            num: !isNaN(parsedNum) ? parsedNum : (idx + 1),
+            german: germanText,
+            meaning: meaningText,
+            type: 'Term'
+        });
+    });
+
+    let chunks = [];
+    for (let i = 0; i < flatArray.length; i += 25) {
+        let chunkWords = flatArray.slice(i, i + 25);
+        let startNum = chunkWords[0].num;
+        let endNum = chunkWords[chunkWords.length - 1].num;
+        chunks.push({
+            id: 'sec_' + (chunks.length + 1),
+            name: `Section ${chunks.length + 1} (${startNum}–${endNum})`,
+            words: chunkWords
+        });
+    }
+    return chunks;
+},
                 speak(text) {
                     let utteranceText = typeof text === 'string' ? text : this.builtSentenceText;
                     if ('speechSynthesis' in window && utteranceText) {
